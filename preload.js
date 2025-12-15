@@ -14,5 +14,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveClient: (c) => ipcRenderer.invoke('db-save-client', c),
     payDebt: (data) => ipcRenderer.invoke('db-pay-debt', data),
     exportarExcel: (d) => ipcRenderer.invoke('exportar-excel', d),
-    facturar: (v) => ipcRenderer.invoke('facturar-afip', v)
+    facturar: (v) => ipcRenderer.invoke('facturar-afip', v),
+    imprimirTicket: (html) => ipcRenderer.invoke('print-ticket', html),
 });

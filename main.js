@@ -24,7 +24,11 @@ db.serialize(() => {
         price REAL, 
         qty INTEGER
     )`);
+    
 
+db.run("ALTER TABLE clients ADD COLUMN dni TEXT", (err) => {
+    
+});   
     db.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, pin TEXT)`);
     db.run(`CREATE TABLE IF NOT EXISTS closures (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, user TEXT, sys_cash REAL, real_cash REAL, diff REAL, status TEXT, details_json TEXT)`);
     db.run(`CREATE TABLE IF NOT EXISTS sales (id INTEGER PRIMARY KEY, date TEXT, seller TEXT, total REAL, payment TEXT, card_name TEXT, surcharge REAL, discount REAL, client_id INTEGER, items_json TEXT)`);
@@ -172,10 +176,18 @@ ipcMain.handle('exportar-excel', async (event, payload) => {
 });
 
 // Otros Handlers
+// REEMPLAZAR EN main.js
 ipcMain.handle('db-save-client', async (e, c) => {
     return new Promise(resolve => {
-        if(c.id) db.run("UPDATE clients SET name=?, phone=?, address=? WHERE id=?", [c.name, c.phone, c.address, c.id], (err)=>resolve(!err));
-        else db.run("INSERT INTO clients (name, phone, address, balance) VALUES (?,?,?,?)", [c.name, c.phone, c.address, c.balance||0], (err)=>resolve(!err));
+        if(c.id) {
+            // UPDATE con DNI
+            db.run("UPDATE clients SET name=?, dni=?, phone=?, address=? WHERE id=?", 
+                [c.name, c.dni, c.phone, c.address, c.id], (err)=>resolve(!err));
+        } else {
+            // INSERT con DNI
+            db.run("INSERT INTO clients (name, dni, phone, address, balance) VALUES (?,?,?,?,?)", 
+                [c.name, c.dni, c.phone, c.address, c.balance||0], (err)=>resolve(!err));
+        }
     });
 });
 ipcMain.handle('db-pay-debt', async (e, {clientId, amount, note}) => {
@@ -188,9 +200,31 @@ ipcMain.handle('db-pay-debt', async (e, {clientId, amount, note}) => {
         });
     });
 });
-ipcMain.handle('db-bulk-update', async (e, {provider, pct}) => {
+// REEMPLAZAR EN main.js
+// EN MAIN.JS: Reemplaza todo el ipcMain.handle('db-bulk-update'...) por esto:
+
+ipcMain.handle('db-bulk-update', async (e, {criteria, value, pct}) => {
     const factor = 1 + (pct/100);
-    return new Promise(r => db.run(`UPDATE products SET cost = ROUND(cost * ?, 2), price = ROUND((cost * ?) * (1 + margin/100), 2) WHERE supplier = ?`, [factor, factor, provider], function(err) { r({success: !err}); }));
+    let sql = "";
+    let params = [];
+
+    // LÓGICA CORREGIDA:
+    // Actualizamos Costo Y Precio multiplicando cada uno por el porcentaje.
+    // Así, si el costo es 0 pero el precio es 100, el precio sube correctamente.
+
+    if(criteria === 'supplier'){
+        sql = `UPDATE products SET cost = ROUND(cost * ?, 2), price = ROUND(price * ?, 2) WHERE supplier = ?`;
+        params = [factor, factor, value];
+    } 
+    else if (criteria === 'category'){
+        sql = `UPDATE products SET cost = ROUND(cost * ?, 2), price = ROUND(price * ?, 2) WHERE category = ?`;
+        params = [factor, factor, value];
+    }
+
+    return new Promise(r => db.run(sql, params, function(err) { 
+        if(err) console.log(err);
+        r({success: !err, count: this.changes}); 
+    }));
 });
 ipcMain.handle('db-save-closure', async (e, c) => {
     return new Promise(resolve => db.run("INSERT INTO closures (date, user, sys_cash, real_cash, diff, status, details_json) VALUES (?,?,?,?,?,?,?)", [c.date, c.user, c.sysCash, c.realCash, c.diff, c.status, JSON.stringify(c.details)], (err) => resolve(!err)));
@@ -212,4 +246,27 @@ function createWindow() {
     mainWindow = new BrowserWindow({ width: 1200, height: 800, webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false } });
     mainWindow.loadFile('index.html');
 }
+
+ipcMain.handle('print-ticket', async (event, content) => {
+    // Creamos una ventana invisible solo para imprimir
+    const workerWindow = new BrowserWindow({ show: false });
+    
+    // Cargamos el HTML del ticket
+    await workerWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(content)}`);
+    
+    // Cuando termine de cargar, imprimimos
+    return new Promise((resolve) => {
+        workerWindow.webContents.once('did-finish-load', () => {
+            workerWindow.webContents.print({
+                silent: false, // false = abre cuadro de diálogo (true = imprime directo si hay impresora default)
+                printBackground: true
+            }, (success, errorType) => {
+                if (!success) console.log("Error impresión:", errorType);
+                workerWindow.close(); // Cerramos la ventana fantasma
+                resolve({ success });
+            });
+        });
+    });
+});
+
 app.whenReady().then(createWindow);

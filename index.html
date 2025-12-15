@@ -2,7 +2,7 @@
 <html lang="es" data-theme="dark">
 <head>
 <meta charset="utf-8" />
-<title>Mandalay Kiosco - Final UI</title>
+<title>JyN SYSTEM- Final UI</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
@@ -205,20 +205,41 @@
 
   /* --- IMPRESIÓN --- */
   #printable-area { display: none; }
-  @media print {
-    body * { visibility: hidden; }
-    #printable-area, #printable-area * { visibility: visible; }
-    #printable-area { display: block; position: absolute; left: 0; top: 0; width: 100%; background: white; color: black; }
-    .ticket-view { max-width: 300px; padding: 10px; font-family: 'Courier New', monospace; font-size: 12px; margin: 0 auto; }
+  
+/* REEMPLAZAR BLOQUE @media print CON ESTO: */
+@media print {
+    /* 1. Ocultamos TODO lo que sea hijo directo del body, MENOS el área de impresión */
+    body > *:not(#printable-area) {
+        display: none !important;
+    }
+
+    /* 2. Forzamos que el área de impresión sea lo único visible */
+    #printable-area {
+        display: block !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background: white;
+        color: black;
+        z-index: 99999; /* Asegura que esté encima de todo */
+    }
+
+    /* 3. Ajustes del ticket para que entre en papel de 80mm o 58mm */
+    .ticket-view { 
+        width: 100%; 
+        max-width: 300px; /* Ancho típico de ticketera */
+        font-family: 'Courier New', monospace; 
+        font-size: 12px;
+        color: black;
+    }
+    
     .ticket-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
     .ticket-line { border-bottom: 1px dashed black; margin: 10px 0; }
     .ticket-center { text-align: center; }
-    .labels-view { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 10px; }
-    .label-item { border: 2px solid black; padding: 10px; text-align: center; height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center; page-break-inside: avoid; }
-    .label-price { font-size: 32px; font-weight: 900; margin: 5px 0; }
-    .label-name { font-size: 14px; text-transform: uppercase; max-height: 40px; overflow: hidden; }
-    .label-code { font-size: 10px; font-family: monospace; margin-top: auto; }
-  }
+}
 </style>
 </head>
 <body>
@@ -328,7 +349,7 @@
              </div>
           </div>
           <div class="table-container">
-            <table id="posTable"><thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead><tbody></tbody></table>
+            <table id="posTable"><thead><tr><th>Descripción</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead><tbody></tbody></table>
           </div>
           <div style="padding:20px; background:var(--bg-body); border-top:1px solid var(--border-color)">
              
@@ -393,14 +414,23 @@
         <div class="card" style="overflow-y:auto">
           <h3 style="margin-top:0"><i class="fas fa-edit"></i> Gestión</h3>
           <label>Código</label><input id="st_code" placeholder="Ej: 779... o 105">
-          <label>Nombre</label><input id="st_name">
+          <label>Descripción</label><input id="st_name">
           <label>Proveedor</label><input id="st_prov" list="provList"><datalist id="provList"></datalist>
           
           <div class="row">
-            <div class="col"><label>Marca</label><input id="st_brand" placeholder="Ej: Selú"></div>
-            <div class="col"><label>Categoría</label><input id="st_cat" placeholder="Ej: Corpiño"></div>
-          </div>
-          <label>Subcategoría</label><input id="st_sub" placeholder="Ej: Deportivo / Taza Soft">
+    <div class="col">
+        <label>Marca</label>
+        <input id="st_brand" list="listBrands" placeholder="Ej: Selú">
+        <datalist id="listBrands"></datalist> </div>
+    <div class="col">
+        <label>Categoría</label>
+        <input id="st_cat" list="listCats" placeholder="Ej: Corpiño">
+        <datalist id="listCats"></datalist> </div>
+</div>
+
+<label>Subcategoría / Modelo</label>
+<input id="st_sub" list="listSubs" placeholder="Ej: Deportivo / Taza Soft">
+<datalist id="listSubs"></datalist> 
           
           <div class="row">
             <div class="col"><label>Talle</label><input id="st_size" placeholder="Ej: 95"></div>
@@ -422,11 +452,24 @@
               <button class="btn secondary" style="flex:1" onclick="clearSt()">Nuevo</button>
           </div>
           
-          <div style="margin-top:30px; padding:15px; background:rgba(245, 158, 11, 0.1); border-radius:12px; border:1px solid var(--warning);">
-             <h4 style="margin:0 0 10px 0; color:var(--warning)">Aumento Masivo</h4>
-             <select id="bulk_prov" style="margin-bottom:10px"><option value="">Proveedor...</option></select>
-             <div style="display:flex; gap:5px"><input id="bulk_pct" type="number" placeholder="%"><button class="btn" style="background:var(--warning); color:black" onclick="bulkUpdate()">Aplicar</button></div>
-          </div>
+          <div style="margin-top:20px; padding:15px; background:rgba(245, 158, 11, 0.1); border-radius:12px; border:1px solid var(--warning);">
+    <h4 style="margin:0 0 10px 0; color:var(--warning)">Aumento Masivo</h4>
+    
+    <div style="display:flex; gap:5px; margin-bottom:5px">
+        <select id="bulk_type" onchange="toggleBulkInput()" style="flex:1">
+            <option value="supplier">Por Proveedor</option>
+            <option value="category">Por Categoría</option>
+        </select>
+    </div>
+
+    <select id="bulk_prov" style="margin-bottom:10px;"><option value="">Elegir Proveedor...</option></select>
+    <select id="bulk_cat_select" style="margin-bottom:10px; display:none"><option value="">Elegir Categoría...</option></select>
+
+    <div style="display:flex; gap:5px">
+        <input id="bulk_pct" type="number" placeholder="%">
+        <button class="btn" style="background:var(--warning); color:black" onclick="bulkUpdate()">Aplicar</button>
+    </div>
+</div>
         </div>
       </div>
 
@@ -445,17 +488,18 @@
 
               <button class="btn secondary" onclick="clearFilters()" title="Limpiar Filtros"><i class="fas fa-eraser"></i></button>
               <button class="btn success" onclick="exportStockCSV()"><i class="fas fa-file-excel"></i></button>
+              <button class="btn" style="background:var(--danger); color:white" onclick="filterLowStock()" title="Ver Bajo Stock (<=5)"><i class="fas fa-exclamation-triangle"></i></button>
           </div>
 
           <div class="table-container">
             <table id="stockTable">
                 <thead>
                     <tr>
-                        <th>Cod</th>
-                        <th>Producto</th>
+                        <th>Código</th>
+                        <th>Descripción</th>
                         <th>Marca</th>
-                        <th>Categ</th>
-                        <th>$$</th>
+                        <th>Categoría</th>
+                        <th>Precio</th>
                         <th>Stock</th>
                         <th></th>
                     </tr>
@@ -477,14 +521,13 @@
               <label>Nombre</label><input id="cli_name">
               <label>Teléfono</label><input id="cli_phone">
               <label>Dirección</label><input id="cli_address">
-              
+              <label>DNI</label><input id="cli_dni" type="number">
               <label style="color:var(--warning)">Deuda Inicial / Saldo ($)</label>
               <input type="number" id="cli_balance" placeholder="0.00">
 
               <div style="display:flex; gap:10px; margin-top:20px;">
-                  <button class="btn" style="flex:1" onclick="saveClient()">Guardar</button>
-                  <button class="btn secondary" onclick="document.getElementById('cli_id').value='';document.getElementById('cli_name').value='';document.getElementById('cli_balance').value='';">Nuevo</button>
-              </div>
+                <button class="btn" style="flex:1" onclick="saveClient()">Guardar</button>
+                <button class="btn secondary" onclick="resetClientForm()">Nuevo</button></div>
 
               <div id="paymentBox" style="display:none; margin-top:30px; padding:15px; border:1px solid var(--primary); background:rgba(244,63,94,0.1); border-radius:10px;">
     <h4 style="margin-top:0; color:var(--primary)">Registrar Pago de Deuda</h4>
@@ -610,21 +653,51 @@ let currentUser = null;
 let currentCart = [];
 let clientToPay = null;
 
+// --- FUNCIÓN DE NAVEGACIÓN (Faltaba esto) ---
+function nav(sectionId) {
+    // 1. Ocultar todas las secciones
+    document.querySelectorAll('.section').forEach(sec => {
+        sec.classList.remove('active');
+    });
+
+    // 2. Mostrar la sección seleccionada (concatena 'tab-' con el id, ej: tab-stock)
+    const target = document.getElementById('tab-' + sectionId);
+    if(target) {
+        target.classList.add('active');
+    }
+
+    // 3. Actualizar el estilo de los botones (el color rojo de activo)
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Buscamos el botón que tiene el onclick correspondiente para activarlo visualmente
+    const activeBtn = document.querySelector(`button[onclick="nav('${sectionId}')"]`);
+    if(activeBtn) {
+        activeBtn.classList.add('active');
+    }
+
+    // 4. (Opcional) Si vamos a la pantalla de Ventas, poner foco en el scanner automáticamente
+    if(sectionId === 'pos') {
+        setTimeout(() => document.getElementById('scanInput').focus(), 100);
+    }
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
-   await reloadData();
+    await reloadData();
+
+    document.getElementById('scanInput').addEventListener('keydown', e => { if(e.key === 'Enter') manualScan(1); });
    
-   document.getElementById('scanInput').addEventListener('keydown', e => { if(e.key === 'Enter') manualScan(1); });
-   
-   document.addEventListener('keydown', e => { 
-       const overlay = document.getElementById('login-overlay');
-       if(overlay.style.display !== 'none'){
-           if(e.key >= '0' && e.key <= '9') typePin(e.key);
-           if(e.key === 'Backspace') clearPin();
-           if(e.key === 'Enter') doLogin();
-           return; 
-       }
-       if(e.key === 'F10') finishSale(); 
-   });
+    document.addEventListener('keydown', e => { 
+        const overlay = document.getElementById('login-overlay');
+        if(overlay.style.display !== 'none'){
+            if(e.key >= '0' && e.key <= '9') typePin(e.key);
+            if(e.key === 'Backspace') clearPin();
+            if(e.key === 'Enter') doLogin();
+            return; 
+        }
+        if(e.key === 'F10') finishSale(); 
+    });
 });
 
 async function reloadData(){
@@ -642,7 +715,7 @@ async function reloadData(){
         renderStock(); 
         renderUsers(); 
         updateArqueo(); 
-        updateProvList();
+        updateLists();
         renderClients();
         fillClientSelect();
         fillFilters(); 
@@ -652,18 +725,35 @@ async function reloadData(){
 const pinDisplay=document.getElementById('loginPin');
 function typePin(n){ pinDisplay.value += n; }
 function clearPin(){ pinDisplay.value = ''; }
+// REEMPLAZAR doLogin y logout POR ESTAS:
+
 function doLogin(){
    const u = DB.users.find(x => x.pin === pinDisplay.value);
-   if(u){ currentUser = u; document.getElementById('userBadge').innerText = u.name; document.getElementById('login-overlay').style.display = 'none'; pinDisplay.value=''; document.getElementById('scanInput').focus(); } 
-   else { showToast("PIN Incorrecto",true); pinDisplay.value=''; }
+   if(u){ 
+       currentUser = u; 
+       document.getElementById('userBadge').innerText = u.name; 
+       document.getElementById('login-overlay').style.display = 'none'; 
+       pinDisplay.value = ''; 
+       
+       // HABILITAMOS EL ESCANER AL ENTRAR
+       const scanInput = document.getElementById('scanInput');
+       scanInput.disabled = false; 
+       scanInput.value = ''; // Borramos cualquier basura que se haya escrito
+       scanInput.focus(); 
+   } 
+   else { 
+       showToast("PIN Incorrecto", true); 
+       pinDisplay.value = ''; 
+   }
 }
-function logout(){ currentUser=null; document.getElementById('login-overlay').style.display='flex'; }
-function nav(t){
-   document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
-   document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
-   document.getElementById('tab-'+t).classList.add('active');
-   if(t==='pos') setTimeout(()=>document.getElementById('scanInput').focus(),100);
-   if(t==='history') updateArqueo();
+
+function logout(){ 
+    currentUser = null; 
+    document.getElementById('login-overlay').style.display = 'flex';
+    
+    // DESHABILITAMOS EL ESCANER AL SALIR (Para que no escriba atrás)
+    const scanInput = document.getElementById('scanInput');
+    scanInput.disabled = true;
 }
 
 // --- POS LOGIC ---
@@ -899,37 +989,83 @@ async function finishSale(){
         }
 
         const res = await window.electronAPI.saveSale(sale);
-        
-        if(res.success) {
-            playBeep(); // Sonido
-            
-            // --- CORRECCIÓN RUIDO INFINITO ---
-            // Usamos Toast en vez de Alert para no trabar el sonido
-            if(total < 0){
-                showToast(`✅ Devolución registrada: ${payMethod} $${Math.abs(total).toFixed(2)}`);
-            } else {
-                showToast("¡Venta Guardada con Éxito!");
-            }
-            
-            // Limpieza
-            currentCart = []; 
-            document.getElementById('surchargePct').value = '';
-            document.getElementById('discountAmt').value = '';
-            document.getElementById('paymentMethod').value = 'Efectivo'; 
-            renderCart(); 
-            if(fisElem) { fisElem.checked = false; toggleFiscal(); }
-            await reloadData(); 
-        } else {
-            throw new Error(res.error || "Error en base de datos");
-        }
+       
+       if(res.success) {
+           playBeep(); // Suena el beep
+           
+           showToast("¡Venta Guardada!"); // Mostramos el aviso visual primero
+
+           // --- SOLUCIÓN BEEP INFINITO ---
+           // Esperamos 300ms antes de bloquear la pantalla con el confirm
+           // Esto permite que el sonido termine de sonar y se apague.
+           setTimeout(() => {
+                if(total > 0 && confirm("¿Imprimir Ticket?")){ 
+                    printTicket(sale);
+                }
+           }, 300);
+           // ------------------------------
+           
+           // Limpieza
+           currentCart = []; 
+           document.getElementById('surchargePct').value = '';
+           document.getElementById('discountAmt').value = '';
+           document.getElementById('paymentMethod').value = 'Efectivo'; 
+           renderCart(); 
+           if(fisElem) { fisElem.checked = false; toggleFiscal(); }
+           await reloadData(); 
+
+       } else {
+           throw new Error(res.error || "Error en base de datos");
+       }
     } catch(e) {
         alert("ERROR AL PROCESAR:\n" + e.message);
     }
 }
 
-function printTicket(s){
-   // Simulación de ticket
-   console.log("Imprimiendo ticket...", s);
+// REEMPLAZAR EN index.html
+function printTicket(sale) {
+    const printable = document.getElementById('printable-area');
+    
+    // Generamos el HTML
+    const itemsHtml = sale.items.map(i => 
+        `<div class="ticket-row">
+            <span>${i.qty} x ${i.name.substring(0, 18)}</span>
+            <span>$${(i.price * i.qty).toFixed(2)}</span>
+        </div>`
+    ).join('');
+
+    printable.innerHTML = `
+        <div class="ticket-view">
+            <div class="ticket-center">
+                <h3 style="margin:0">SHE LENCERIA</h3>
+                <p style="margin:5px 0">Fecha: ${sale.date.split(',')[0]} ${sale.date.split(',')[1]}</p>
+                <p style="margin:0">Vendedor: ${sale.seller}</p>
+            </div>
+            <div class="ticket-line"></div>
+            ${itemsHtml}
+            <div class="ticket-line"></div>
+            <div class="ticket-row" style="font-weight:bold; font-size:16px">
+                <span>TOTAL:</span>
+                <span>$${sale.total.toFixed(2)}</span>
+            </div>
+            <div class="ticket-row">
+                <span>Pago:</span>
+                <span>${sale.payment}</span>
+            </div>
+            <div class="ticket-center" style="margin-top:25px; font-size:15px">
+                *** GRACIAS POR SU COMPRA ***<br>
+                ESPAÑA 185
+            </div>
+        </div>
+    `;
+
+    // Imprimimos
+    window.print();
+
+    // Limpiamos el área después de imprimir para que no moleste
+    setTimeout(() => {
+        printable.innerHTML = '';
+    }, 1000);
 }
 
 function toggleAllLabels(chk){ document.querySelectorAll('.lbl-chk').forEach(c => c.checked = chk.checked); }
@@ -957,21 +1093,32 @@ function fillClientSelect(){
     }
 }
 
+a// REEMPLAZAR saveClient
 async function saveClient(){
+    const idVal = document.getElementById('cli_id').value;
+    
     const c = {
-        id: document.getElementById('cli_id').value,
-        name: document.getElementById('cli_name').value,
-        phone: document.getElementById('cli_phone').value,
-        address: document.getElementById('cli_address').value,
-        balance: parseFloat(document.getElementById('cli_balance').value)||0 // Deuda inicial
+        // Si el ID está vacío, mandamos null para que SQLite cree uno nuevo
+        id: idVal ? parseInt(idVal) : null, 
+        name: document.getElementById('cli_name').value.trim(),
+        dni: document.getElementById('cli_dni').value.trim(),
+        phone: document.getElementById('cli_phone').value.trim(),
+        address: document.getElementById('cli_address').value.trim(),
+        balance: parseFloat(document.getElementById('cli_balance').value)||0 
     };
-    if(!c.name) return showToast("Nombre obligatorio", true);
-    await window.electronAPI.saveClient(c);
-    document.getElementById('cli_name').value='';
-    document.getElementById('cli_balance').value='';
-    showToast("Cliente Guardado"); reloadData();
-}
 
+    if(!c.name) return showToast("Nombre obligatorio", true);
+    
+    // Guardamos
+    await window.electronAPI.saveClient(c);
+    
+    // IMPORTANTE: Limpiamos todo INMEDIATAMENTE después de guardar
+    // para evitar que el próximo "Guardar" sobrescriba este mismo cliente.
+    resetClientForm();
+    
+    showToast("Cliente Guardado"); 
+    reloadData();
+}
 function renderClients(){
     const q = document.getElementById('searchClient').value.toLowerCase();
     const tbody = document.querySelector('#clientsTable tbody');
@@ -1003,15 +1150,20 @@ function renderClients(){
         // ------------------------------
 
         return `
-        <tr>
-            <td>${c.name} <br> ${alertaHtml}</td>
-            <td>${c.phone}</td>
-            <td>${c.address}</td>
-            <td style="color:${c.balance>0?'var(--danger)':'var(--accent)'}; font-weight:bold">$${c.balance.toFixed(2)}</td>
-            <td>
-                <button class="btn secondary" onclick="openClientDetails(${c.id})" title="Ver Historial Detallado"><i class="fas fa-list"></i></button>
-                <button class="btn secondary" onclick="openPayBox(${c.id})" title="Registrar Pago"><i class="fas fa-hand-holding-usd"></i></button>
-        </tr>`;
+<tr>
+    <td>
+        <strong>${c.name}</strong>
+        <br><small style="color:var(--text-muted)">DNI: ${c.dni || '-'}</small> ${alertaHtml}
+    </td>
+    <td>${c.phone}</td>
+    <td>${c.address}</td>
+    <td style="color:${c.balance>0?'var(--danger)':'var(--accent)'}; font-weight:bold">$${c.balance.toFixed(2)}</td>
+    <td>
+        <button class="btn secondary" onclick="openClientDetails(${c.id})" title="Ver Historial Detallado"><i class="fas fa-list"></i></button>
+        <button class="btn secondary" onclick="openPayBox(${c.id})" title="Registrar Pago"><i class="fas fa-hand-holding-usd"></i></button>
+        <button class="btn secondary" onclick="editClient(${c.id})"><i class="fas fa-edit"></i></button>
+    </td>
+</tr>`;
     }).join('');
 }
 
@@ -1020,6 +1172,19 @@ function openPayBox(id){
     document.getElementById('paymentBox').style.display='block';
     document.getElementById('lblDebt').innerText = '$' + clientToPay.balance.toFixed(2);
     document.getElementById('payAmt').focus();
+}
+
+// AGREGAR AL FINAL DEL SCRIPT
+function resetClientForm(){
+    document.getElementById('cli_id').value = ''; // Borra el ID oculto
+    document.getElementById('cli_name').value = '';
+    document.getElementById('cli_dni').value = '';
+    document.getElementById('cli_phone').value = '';
+    document.getElementById('cli_address').value = '';
+    document.getElementById('cli_balance').value = '';
+    
+    // Poner el foco en el nombre para cargar el siguiente rápido
+    document.getElementById('cli_name').focus();
 }
 
 async function processPayment(){
@@ -1102,9 +1267,72 @@ function editProd(c){
     document.getElementById('st_margin').value=s.margin;
     document.getElementById('st_price').value=s.price; 
     document.getElementById('st_qty').value=s.qty;
-}async function bulkUpdate(){ const p = document.getElementById('bulk_prov').value, pct=parseFloat(document.getElementById('bulk_pct').value); if(p && pct && confirm(`¿Aumentar ${pct}% a ${p}?`)){ await window.electronAPI.bulkUpdate({provider:p, pct}); await reloadData(); showToast("Actualizado"); } }
-function updateProvList(){ const p = [...new Set(DB.stock.map(x=>x.supplier).filter(Boolean))]; document.getElementById('provList').innerHTML=p.map(x=>`<option value="${x}">`).join(''); document.getElementById('bulk_prov').innerHTML='<option value="">Proveedor...</option>'+p.map(x=>`<option value="${x}">${x}</option>`).join(''); }
+}// 1. Alternar visualmente los inputs
+function toggleBulkInput(){
+    const type = document.getElementById('bulk_type').value;
+    document.getElementById('bulk_prov').style.display = type === 'supplier' ? 'block' : 'none';
+    document.getElementById('bulk_cat_select').style.display = type === 'category' ? 'block' : 'none';
+}
 
+// 2. Llenar los selectores (Actualizar updateProvList)
+function updateLists(){ 
+    if(!DB.stock) return;
+
+    // 1. Proveedores (Mantenemos lo que tenías)
+    const p = [...new Set(DB.stock.map(x=>x.supplier).filter(Boolean))].sort(); 
+    document.getElementById('provList').innerHTML = p.map(x=>`<option value="${x}">`).join(''); 
+    document.getElementById('bulk_prov').innerHTML = '<option value="">Elegir Proveedor...</option>' + p.map(x=>`<option value="${x}">${x}</option>`).join(''); 
+    
+    // 2. Marcas (Nuevo)
+    const marcas = [...new Set(DB.stock.map(x=>x.brand).filter(Boolean))].sort();
+    document.getElementById('listBrands').innerHTML = marcas.map(x=>`<option value="${x}">`).join('');
+
+    // 3. Categorías (Nuevo - Actualiza filtro y gestión)
+    const cats = [...new Set(DB.stock.map(x=>x.category).filter(Boolean))].sort();
+    // Lista para gestión
+    document.getElementById('listCats').innerHTML = cats.map(x=>`<option value="${x}">`).join('');
+    // Lista para Aumento Masivo
+    document.getElementById('bulk_cat_select').innerHTML = '<option value="">Elegir Categoría...</option>' + cats.map(x=>`<option value="${x}">${x}</option>`).join('');
+    // Lista para Filtro de Tabla (Arriba a la derecha)
+    const filterCat = document.getElementById('filterCat');
+    const currentFilter = filterCat.value; // Guardar selección actual
+    filterCat.innerHTML = '<option value="">Todas las Categorías</option>' + cats.map(x=>`<option value="${x}">${x}</option>`).join('');
+    filterCat.value = currentFilter;
+
+    // 4. Subcategorías (Nuevo)
+    const subs = [...new Set(DB.stock.map(x=>x.subcategory).filter(Boolean))].sort();
+    document.getElementById('listSubs').innerHTML = subs.map(x=>`<option value="${x}">`).join('');
+    
+    // 5. Filtro Marcas (Tabla)
+    const brandsList = [...new Set(DB.stock.map(x=>x.brand).filter(Boolean))].sort();
+    const filterBrand = document.getElementById('filterBrand');
+    const currentBrand = filterBrand.value;
+    filterBrand.innerHTML = '<option value="">Todas las Marcas</option>' + brandsList.map(x=>`<option value="${x}">${x}</option>`).join('');
+    filterBrand.value = currentBrand;
+}
+
+// 3. La función de actualizar
+async function bulkUpdate(){ 
+    const type = document.getElementById('bulk_type').value; // 'supplier' o 'category'
+    const pct = parseFloat(document.getElementById('bulk_pct').value); 
+    
+    let value = "";
+    let label = "";
+
+    if(type === 'supplier'){
+        value = document.getElementById('bulk_prov').value;
+        label = "Proveedor " + value;
+    } else {
+        value = document.getElementById('bulk_cat_select').value;
+        label = "Categoría " + value;
+    }
+
+    if(value && pct && confirm(`¿Aumentar ${pct}% a todo: ${label}?`)){ 
+        await window.electronAPI.bulkUpdate({criteria: type, value: value, pct: pct}); 
+        await reloadData(); 
+        showToast("Precios Actualizados"); 
+    } 
+}
 async function exportStockCSV(){
     if(DB.stock.length === 0) return showToast("No hay stock", true);
     let csv = "CODIGO;PRODUCTO;PROVEEDOR;COSTO;MARGEN;PRECIO;STOCK\n";
@@ -1282,7 +1510,7 @@ const filtered = DB.stock.filter(s => {
             <td>${s.category || '-'}</td>
             <td>$${s.price.toFixed(2)}</td>
             <td style="font-weight:bold; color:${s.qty<=0?'red':'lime'}">${s.qty}</td>
-            <td><button class="btn secondary" onclick="editProd('${s.code}')">Edit</button></td>
+            <td><button class="btn secondary" onclick="editProd('${s.code}')">Editar</button></td>
 <td>
     <button class="btn secondary" onclick="editProd('${s.code}')"><i class="fas fa-edit"></i></button>
     <button class="btn-sm" style="color:var(--danger); border-color:var(--danger); margin-left:5px;" onclick="deleteProd('${s.code}')"><i class="fas fa-trash"></i></button>
@@ -1339,6 +1567,16 @@ function openReturnModal(){
     setTimeout(() => document.getElementById('return_input').focus(), 100);
 }
 
+function editClient(id){
+    const c = DB.clients.find(x => x.id === id);
+    document.getElementById('cli_id').value = c.id;
+    document.getElementById('cli_name').value = c.name;
+    document.getElementById('cli_dni').value = c.dni || '';
+    document.getElementById('cli_phone').value = c.phone;
+    document.getElementById('cli_address').value = c.address;
+    // No cargamos el balance para no editarlo manual por error, eso se maneja con pagos/ventas
+}
+
 function confirmReturnModal(){
     const val = document.getElementById('return_input').value.trim();
     if(!val) return showToast("Ingrese un dato", true);
@@ -1357,6 +1595,30 @@ async function deleteProd(code){
         showToast("Producto eliminado");
         reloadData();
     }
+}
+
+function filterLowStock(){
+    const tbody = document.querySelector('#stockTable tbody');
+    // Filtramos solo los que tienen 5 o menos
+    const lowStock = DB.stock.filter(s => s.qty <= 5);
+    
+    if(lowStock.length === 0) return showToast("¡Todo el stock está saludable! (+5)");
+
+    // Usamos el mismo render pero forzado
+    tbody.innerHTML = lowStock.map(s=>`
+        <tr style="background:rgba(239,68,68,0.1)"> <td>${s.code}</td>
+            <td>${s.name} <small>${s.size||''} ${s.color||''}</small></td>
+            <td>${s.brand || '-'}</td>
+            <td>${s.category || '-'}</td>
+            <td>$${s.price.toFixed(2)}</td>
+            <td style="font-weight:bold; color:var(--danger); font-size:18px">${s.qty}</td> <td>
+                <button class="btn secondary" onclick="editProd('${s.code}')"><i class="fas fa-edit"></i></button>
+                <button class="btn-sm" style="color:var(--danger); border-color:var(--danger); margin-left:5px" onclick="deleteProd('${s.code}')"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+    
+    showToast(`Mostrando ${lowStock.length} artículos críticos`);
 }
 
 async function addUser(){ const n=document.getElementById('u_name').value, p=document.getElementById('u_pin').value; if(n&&p) { await window.electronAPI.addUser({name:n, pin:p}); await reloadData(); document.getElementById('u_name').value=''; } }
@@ -1386,12 +1648,19 @@ function openClientDetails(clientId){
             const sale = DB.sales.find(s => s.id == saleId);
             
             if(sale){
-                vendedor = sale.seller || 'Admin';
-                // Generamos lista de articulos
-                if(sale.items && Array.isArray(sale.items)){
-                    detalle = sale.items.map(i => `<div style="font-size:12px">• ${i.qty}x ${i.name}</div>`).join('');
-                }
-            }
+    vendedor = sale.seller || 'Admin';
+    
+    // --- NUEVO: Detectar Tarjeta ---
+    if(sale.card_name){
+        // Agregamos el nombre de la tarjeta al detalle visual
+        detalle += `<br><span style="color:#fbbf24; font-size:11px"><i class="fas fa-credit-card"></i> ${sale.card_name}</span>`;
+    }
+    // -------------------------------
+
+    if(sale.items && Array.isArray(sale.items)){
+        detalle += sale.items.map(i => `<div style="font-size:12px">• ${i.qty}x ${i.name}</div>`).join('');
+    }
+}
         }
 
         // Color del monto según si suma deuda o resta
