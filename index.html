@@ -5,23 +5,50 @@
 <title>Mandalay Kiosco - Final UI</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
 <style>
   /* --- SISTEMA DE DISEÑO (PALETAS SEPARADAS) --- */
   :root {
     /* MODO OSCURO (Por defecto) */
-    --bg-body: #0f172a; --bg-card: #1e293b; --bg-input: #334155; --bg-hover: rgba(255, 255, 255, 0.05);
-    --text-main: #f1f5f9; --text-muted: #94a3b8; --border-color: #475569;
-    --bg-total: #020617; --bg-table-head: #0f172a;
-    --primary: #f43f5e; --accent: #10b981; --danger: #ef4444; --warning: #f59e0b;
-    --radius: 10px; --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    --bg-body: #0f172a;        /* Fondo General */
+    --bg-card: #1e293b;        /* Fondo Tarjetas */
+    --bg-input: #334155;       /* Fondo Inputs */
+    --bg-hover: rgba(255, 255, 255, 0.05);
+    
+    --text-main: #f1f5f9;      /* Texto Principal */
+    --text-muted: #94a3b8;     /* Texto Secundario */
+    --border-color: #475569;   /* Bordes */
+    
+    --bg-total: #020617;       /* Fondo del bloque TOTAL */
+    --bg-table-head: #0f172a;  /* Encabezado Tabla */
+    
+    /* COLORES DE MARCA (Iguales en ambos modos) */
+    --primary: #f43f5e;        /* Rojo/Rosa Acción */
+    --accent: #10b981;         /* Verde Éxito */
+    --danger: #ef4444;         /* Rojo Error */
+    --warning: #f59e0b;        /* Naranja Alerta */
+    
+    --radius: 10px;
+    --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
   }
+
   [data-theme="light"] {
-    --bg-body: #f1f5f9; --bg-card: #ffffff; --bg-input: #ffffff; --bg-hover: rgba(0, 0, 0, 0.05);
-    --text-main: #0f172a; --text-muted: #64748b; --border-color: #cbd5e1;
-    --bg-total: #1e293b; --bg-table-head: #f8fafc;
+    /* MODO CLARO (Sobrescritura) */
+    --bg-body: #f1f5f9;        /* Gris muy claro */
+    --bg-card: #ffffff;        /* Blanco puro */
+    --bg-input: #ffffff;       /* Blanco */
+    --bg-hover: rgba(0, 0, 0, 0.05);
+    
+    --text-main: #0f172a;      /* Azul muy oscuro (casi negro) */
+    --text-muted: #64748b;     /* Gris medio */
+    --border-color: #cbd5e1;   /* Gris borde */
+    
+    --bg-total: #1e293b;       /* El total lo dejamos oscuro para contraste, o gris oscuro */
+    --bg-table-head: #f8fafc;  /* Gris muy claro para tabla header */
+    
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
+
+  /* RESET & BASE */
   * { box-sizing: border-box; outline: none; user-select: none; }
   body {
     margin: 0; font-family: "Segoe UI", system-ui, sans-serif;
@@ -29,12 +56,16 @@
     height: 100vh; display: flex; flex-direction: column; overflow: hidden;
     transition: background 0.3s ease, color 0.3s ease;
   }
+
+  /* --- HEADER --- */
   header {
     background: var(--bg-card); border-bottom: 1px solid var(--border-color);
     padding: 0 24px; height: 70px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
     box-shadow: var(--shadow); z-index: 10;
   }
   .brand { font-size: 24px; font-weight: 800; color: var(--primary); display: flex; gap:12px; align-items:center; }
+  
+  /* NAVEGACIÓN */
   .nav-tabs { display: flex; gap: 10px; height: 100%; }
   .tab-btn {
     background: transparent; border: none; height: 100%; padding: 0 20px;
@@ -43,24 +74,34 @@
   }
   .tab-btn:hover { color: var(--text-main); background: var(--bg-hover); }
   .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  /* SWITCH TEMA */
   .theme-toggle {
     background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main);
     width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
     transition: 0.2s;
   }
   .theme-toggle:hover { filter: brightness(1.1); }
+
+  /* --- LAYOUT PRINCIPAL --- */
   .main { flex: 1; padding: 20px; overflow-y: auto; position: relative; }
   .section { display: none; height: 100%; animation: slideIn 0.2s ease-out; }
   .section.active { display: block; }
   @keyframes slideIn { from {opacity: 0; transform: translateY(10px);} to {opacity: 1; transform: translateY(0);} }
+
   .row { display: flex; gap: 15px; height: 100%; }
   .col { flex: 1; display: flex; flex-direction: column; height: 100%; } 
+
+  /* CARDS */
   .card { 
     background: var(--bg-card); border-radius: var(--radius); padding: 20px; 
     box-shadow: var(--shadow); height: 100%; display: flex; flex-direction: column; 
     border: 1px solid var(--border-color); 
   }
+
+  /* FORMS & INPUTS */
   label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; margin-top: 12px; text-transform: uppercase; }
+  
   input, select {
     width: 100%; padding: 12px 14px; 
     border: 1px solid var(--border-color); border-radius: var(--radius); 
@@ -69,14 +110,20 @@
   }
   input::placeholder { color: var(--text-muted); opacity: 0.7; }
   input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.2); }
+
+  /* BOTONES */
   button.btn {
     background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: var(--radius);
     font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px;
   }
   button.btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  
   button.secondary { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
   button.secondary:hover { background: var(--bg-hover); }
+  
   button.success { background: var(--accent); color: #fff; }
+
+  /* --- TABLAS --- */
   .table-container { 
     flex: 1; overflow: auto; 
     border: 1px solid var(--border-color); border-radius: var(--radius); 
@@ -91,10 +138,14 @@
   }
   td { padding: 14px 16px; border-bottom: 1px solid var(--border-color); font-size: 15px; color: var(--text-main); }
   tr:hover td { background: var(--bg-hover); }
+
+  /* STOCK BADGES */
   .stock-badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 800; }
   .stock-ok { color: var(--accent); background: rgba(16, 185, 129, 0.1); }
   .stock-warn { color: var(--warning); background: rgba(245, 158, 11, 0.1); }
-  .stock-crit { color: var(--danger); background: rgba(239, 68, 68, 0.1); } /* Alerta visual de stock */
+  .stock-crit { color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+
+  /* --- POS SPECIFICS --- */
   .btn-sm { 
     width: 32px; height: 32px; border-radius: 8px; 
     border: 1px solid var(--border-color); background: var(--bg-input); 
@@ -102,6 +153,7 @@
     display: inline-flex; align-items: center; justify-content: center; 
   }
   .btn-sm:hover { background: var(--bg-hover); }
+
   .total-block { 
     background: var(--bg-total); border: 1px solid var(--border-color);
     padding: 24px; border-radius: 16px; margin-top: auto; 
@@ -111,12 +163,12 @@
   .total-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
   .big-total { font-size: 42px; font-weight: 800; color: var(--accent); letter-spacing: -1px; text-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
   
-  /* ESTILOS NUEVOS PARA INPUTS DE RECARGO Y TARJETA */
   .extra-input {
       background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
       color: white; width: 80px; padding: 5px; text-align: right; border-radius: 5px;
   }
 
+  /* --- ARQUEO DE CAJA --- */
   .cash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .bill-row { 
     display: flex; align-items: center; justify-content: space-between; 
@@ -128,11 +180,15 @@
     background: var(--bg-card); color: var(--text-main); border: 2px solid var(--border-color); 
   }
   .bill-input:focus { border-color: var(--accent); }
+
   .verdict-box { padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px; font-weight: bold; font-size: 18px; border: 1px solid transparent; }
   .verdict-ok { background: rgba(16, 185, 129, 0.1); color: var(--accent); border-color: var(--accent); }
   .verdict-bad { background: rgba(239, 68, 68, 0.1); color: var(--danger); border-color: var(--danger); }
+
+  /* --- MODALES --- */
   .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
   .overlay-box { background: var(--bg-card); padding: 40px; border-radius: 24px; width: 360px; text-align: center; border: 1px solid var(--border-color); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); }
+  
   .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 30px; }
   .pin-btn { 
     padding: 20px; font-size: 22px; background: var(--bg-input); 
@@ -141,9 +197,13 @@
   }
   .pin-btn:active { transform: scale(0.95); }
   .pin-display { font-size: 40px; letter-spacing: 15px; margin-bottom: 20px; text-align: center; background: transparent; border: none; border-bottom: 2px solid var(--primary); color: var(--text-main); width: 100%; font-family: monospace; }
+
+  /* TOAST */
   .toast { position: fixed; bottom: 30px; right: 30px; background: var(--bg-card); color: var(--text-main); padding: 16px 24px; border-radius: 50px; opacity: 0; transition: 0.3s; transform: translateY(20px); box-shadow: var(--shadow); font-weight: 600; pointer-events: none; z-index: 1000; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; }
   .toast.show { opacity: 1; transform: translateY(0); }
   .toast.error { border-color: var(--danger); color: var(--danger); }
+
+  /* --- IMPRESIÓN --- */
   #printable-area { display: none; }
   @media print {
     body * { visibility: hidden; }
@@ -201,6 +261,7 @@
   <nav class="nav-tabs">
     <button class="tab-btn active" onclick="nav('pos')"><i class="fas fa-cash-register"></i> Ventas</button>
     <button class="tab-btn" onclick="nav('stock')"><i class="fas fa-boxes"></i> Stock</button>
+    <button class="tab-btn" onclick="nav('clients')"><i class="fas fa-users"></i> Cta. Cte.</button> 
     <button class="tab-btn" onclick="nav('history')"><i class="fas fa-chart-pie"></i> Arqueo</button>
     <button class="tab-btn" onclick="nav('users')"><i class="fas fa-cog"></i> Config</button>
   </nav>
@@ -229,15 +290,11 @@
             <table id="posTable"><thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead><tbody></tbody></table>
           </div>
           <div style="padding:20px; background:var(--bg-body); border-top:1px solid var(--border-color)">
-             <div style="margin-bottom:15px; padding:12px; border:1px solid var(--border-color); border-radius:12px; background:var(--bg-card); display:flex; align-items:center; justify-content:space-between;">
-                <label style="margin:0; cursor:pointer; display:flex; align-items:center; gap:10px;">
-                    <input type="checkbox" id="checkFiscal" onchange="toggleFiscal()" style="width:20px; height:20px;"> 
-                    <span style="font-weight:700; color:var(--text-main)">Facturar ARCA</span>
-                </label>
-                <div id="fiscalInputs" style="display:none; gap:10px;">
-                    <input id="cuitCliente" type="number" placeholder="CUIT (11 dig)" style="width:180px">
-                    <select id="tipoFactura" style="width:140px"><option value="B">B - Final</option><option value="A">A - Inscripto</option></select>
-                </div>
+             
+             <div style="margin-bottom:15px; display:flex; gap:10px; align-items:center;">
+                <label style="margin:0; min-width:60px">Cliente:</label>
+                <select id="posClient" style="flex:1"><option value="">Consumidor Final</option></select>
+                <span id="clientDebtBadge" style="display:none; color:var(--danger); font-weight:bold; font-size:14px;">Deuda: $0.00</span>
              </div>
 
              <div class="total-block">
@@ -249,6 +306,7 @@
                           <option value="Transferencia">Transferencia</option>
                           <option value="Debito">Débito</option>
                           <option value="Credito">Crédito</option>
+                          <option value="Cuenta Corriente" style="color:orange">Cuenta Corriente (Fiar)</option> 
                       </select>
                       <input id="cardName" placeholder="Nombre Tarjeta (Ej: Visa)" style="display:none; margin-top:5px; background:rgba(255,255,255,0.1); color:white; border:none;">
                    </div>
@@ -258,17 +316,14 @@
                            <span style="font-size:13px; opacity:0.7">Subtotal:</span>
                            <span id="lblSubtotal" style="font-weight:bold">$0.00</span>
                        </div>
-                       
                        <div class="total-row" style="margin-bottom:5px; justify-content: flex-end; gap: 10px;">
                            <span style="font-size:13px">Recargo (%):</span>
                            <input type="number" id="surchargePct" class="extra-input" value="0" oninput="calcTotalFinal()">
                        </div>
-
                        <div class="total-row" style="margin-bottom:10px; justify-content: flex-end; gap: 10px;">
                            <span style="font-size:13px">Descuento ($):</span>
                            <input type="number" id="discountAmt" class="extra-input" value="0" oninput="calcTotalFinal()">
                        </div>
-
                        <div class="big-total" id="displayTotal">$0.00</div>
                    </div>
                 </div>
@@ -329,6 +384,47 @@
     </div>
   </div>
 
+  <div id="tab-clients" class="section">
+     <div class="row" style="height:100%">
+        <div class="col" style="flex:0 0 320px">
+           <div class="card">
+              <h3><i class="fas fa-user-plus"></i> Cliente</h3>
+              <input type="hidden" id="cli_id">
+              <label>Nombre</label><input id="cli_name">
+              <label>Teléfono</label><input id="cli_phone">
+              <label>Dirección</label><input id="cli_address">
+              
+              <label style="color:var(--warning)">Deuda Inicial / Saldo ($)</label>
+              <input type="number" id="cli_balance" placeholder="0.00">
+
+              <div style="display:flex; gap:10px; margin-top:20px;">
+                  <button class="btn" style="flex:1" onclick="saveClient()">Guardar</button>
+                  <button class="btn secondary" onclick="document.getElementById('cli_id').value='';document.getElementById('cli_name').value='';document.getElementById('cli_balance').value='';">Nuevo</button>
+              </div>
+
+              <div id="paymentBox" style="display:none; margin-top:30px; padding:15px; border:1px solid var(--primary); background:rgba(244,63,94,0.1); border-radius:10px;">
+                  <h4 style="margin-top:0; color:var(--primary)">Registrar Pago</h4>
+                  <p>Deuda Actual: <strong id="lblDebt" style="font-size:18px">$0.00</strong></p>
+                  <label>Monto que paga ($)</label>
+                  <input type="number" id="payAmt" placeholder="Monto">
+                  <button class="btn success" style="width:100%; margin-top:10px" onclick="processPayment()">Confirmar Pago</button>
+              </div>
+           </div>
+        </div>
+        <div class="col">
+           <div class="card">
+               <input id="searchClient" placeholder="Buscar cliente..." oninput="renderClients()">
+               <div class="table-container">
+                   <table id="clientsTable">
+                       <thead><tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th><th>Saldo (Deuda)</th><th>Acción</th></tr></thead>
+                       <tbody></tbody>
+                   </table>
+               </div>
+           </div>
+        </div>
+     </div>
+  </div>
+
   <div id="tab-history" class="section">
     <div class="row" style="height:100%">
       <div class="col">
@@ -337,9 +433,11 @@
             <div style="background:var(--bg-input); padding:20px; border-radius:16px; margin-bottom:20px; border:1px solid var(--border-color);">
                <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><span>Efectivo Sistema:</span><strong id="sys_cash" style="color:var(--text-main)">$0.00</strong></div>
                <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><span>Digital Sistema:</span><strong id="sys_dig" style="color:var(--text-main)">$0.00</strong></div>
-               <div style="border-top:1px solid var(--border-color); padding-top:12px; display:flex; justify-content:space-between; font-size:20px;"><span>Total Vendido:</span><strong id="sys_total" style="color:var(--accent)">$0.00</strong></div>
+               <div style="display:flex; justify-content:space-between; margin-bottom:12px; color:var(--warning)"><span>Ventas Cta. Cte. (Fiado):</span><strong id="sys_cta">$0.00</strong></div>
+               
+               <div style="border-top:1px solid var(--border-color); padding-top:12px; display:flex; justify-content:space-between; font-size:20px;"><span>Total Ventas:</span><strong id="sys_total" style="color:var(--accent)">$0.00</strong></div>
             </div>
-            <button class="btn success" style="width:100%; margin-bottom:20px;" onclick="downloadExcel()"><i class="fas fa-file-excel"></i> Exportar Reporte Gerencial</button>
+            <button class="btn success" style="width:100%; margin-bottom:20px;" onclick="downloadExcel()"><i class="fas fa-file-excel"></i> Cerrar Caja y Generar Excel</button>
             <h4>Últimas 10 Ventas</h4>
             <div class="table-container"><table id="historyTable"><thead><tr><th>Hora</th><th>Total</th><th>Pago</th></tr></thead><tbody></tbody></table></div>
          </div>
@@ -361,7 +459,7 @@
             </div>
             <div style="margin-top:20px; text-align:right; font-size:18px; color:var(--text-muted)">En Caja: <strong id="counted_total" style="font-size:28px; color:var(--text-main)">$0.00</strong></div>
             <div id="verdictBox" class="verdict-box" style="display:none"><div>Diferencia: <span id="diffAmount"></span></div><div id="diffText" style="font-size:14px; font-weight:normal"></div></div>
-            <button class="btn" style="width:100%; margin-top:20px;" onclick="saveClosure()"><i class="fas fa-save"></i> CERRAR Y GUARDAR</button>
+            <button class="btn" style="width:100%; margin-top:20px;" onclick="saveClosure()"><i class="fas fa-save"></i> GUARDAR CIERRE</button>
          </div>
       </div>
     </div>
@@ -414,18 +512,17 @@ function toggleTheme() {
 }
 if(localStorage.getItem('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
 
-let DB = { stock: [], users: [], sales: [], closures: [] };
+let DB = { stock: [], users: [], sales: [], closures: [], clients: [], movements: [] };
 let currentUser = null;
 let currentCart = [];
+let clientToPay = null;
 
 window.addEventListener('DOMContentLoaded', async () => {
    await reloadData();
    
    document.getElementById('scanInput').addEventListener('keydown', e => { if(e.key === 'Enter') manualScan(); });
    
-   // EVENTO TECLADO GLOBAL (NUEVO)
    document.addEventListener('keydown', e => { 
-       // Login con Teclado
        const overlay = document.getElementById('login-overlay');
        if(overlay.style.display !== 'none'){
            if(e.key >= '0' && e.key <= '9') typePin(e.key);
@@ -433,13 +530,29 @@ window.addEventListener('DOMContentLoaded', async () => {
            if(e.key === 'Enter') doLogin();
            return; 
        }
-       // Atajo Venta
        if(e.key === 'F10') finishSale(); 
    });
 });
 
 async function reloadData(){
-    try { const data = await window.electronAPI.getAllData(); DB = data; renderStock(); renderUsers(); updateArqueo(); updateProvList(); } catch(e) { console.error(e); }
+    try { 
+        const data = await window.electronAPI.getAllData(); 
+        
+        // REINTENTO DE SEGURIDAD (Evita error crítico al iniciar)
+        if(!data.users || data.users.length === 0) {
+            console.log("DB cargando, reintentando...");
+            setTimeout(reloadData, 500);
+            return;
+        }
+
+        DB = data; 
+        renderStock(); 
+        renderUsers(); 
+        updateArqueo(); 
+        updateProvList();
+        renderClients();
+        fillClientSelect();
+    } catch(e) { console.error(e); }
 }
 
 const pinDisplay=document.getElementById('loginPin');
@@ -459,7 +572,7 @@ function nav(t){
    if(t==='history') updateArqueo();
 }
 
-// --- POS LOGIC (Actualizado: Tarjeta, Stock 0, Recargo) ---
+// --- POS LOGIC ---
 function toggleCardInput(){
     const m = document.getElementById('paymentMethod').value;
     const cardInput = document.getElementById('cardName');
@@ -480,14 +593,10 @@ function manualScan(){
    }
    const prod = DB.stock.find(s => s.code === code);
    if(prod){
-      // CONTROL DE STOCK 0 (Nuevo)
       if(prod.qty <= 0) { showToast("¡SIN STOCK!", true); return; }
-
       const qty = parseInt(document.getElementById('scanQty').value)||1;
       const inCart = currentCart.find(i=>i.code===code && !i.isManual)?.qty || 0;
-      
       if(inCart + qty > prod.qty) { showToast(`¡Stock Insuficiente! (${prod.qty})`, true); return; }
-      
       addItemToCart(prod.name, qty, prod.price, prod.code, false);
       successScan(input);
       document.getElementById('scanQty').value=1;
@@ -520,7 +629,6 @@ function changeQty(idx, delta){
    if(item.qty <= 0) delItem(idx); else { item.subtotal = item.qty * item.price; renderCart(); }
 }
 
-// CÁLCULO DE TOTALES (Nuevo)
 function calcTotalFinal(){
     let subtotal = currentCart.reduce((a,b)=>a+b.subtotal, 0);
     const surPct = parseFloat(document.getElementById('surchargePct').value)||0;
@@ -544,52 +652,105 @@ function renderCart(){
 function delItem(i){ currentCart.splice(i,1); renderCart(); }
 
 async function finishSale(){
-   if(currentCart.length===0) return showToast("Carrito vacío", true);
+   // 1. Validar si hay productos
+   if(currentCart.length === 0) return showToast("El carrito está vacío", true);
    
-   // Datos Extendidos
-   const nums = calcTotalFinal();
+   // 2. Obtener datos básicos
    const payMethod = document.getElementById('paymentMethod').value;
-   const cardName = document.getElementById('cardName').value;
+   const cliIdVal = document.getElementById('posClient').value;
+   const cliId = cliIdVal ? parseInt(cliIdVal) : null;
 
-   const fis = document.getElementById('checkFiscal').checked;
-   const cuit = document.getElementById('cuitCliente').value;
-   if(fis && (!cuit || cuit.length!==11)) return showToast("CUIT inválido", true);
+   // 3. Validación estricta de Cta Corriente
+   if(payMethod === 'Cuenta Corriente' && !cliId){
+       alert("ERROR: Para vender en Cuenta Corriente DEBE seleccionar un Cliente.");
+       return;
+   }
+
+   // 4. Obtener datos Fiscales (CORRECCIÓN DEL ERROR)
+   // Verificamos si los elementos existen antes de leerlos para que no explote
+   const fisElem = document.getElementById('checkFiscal');
+   const fis = fisElem ? fisElem.checked : false; // Si no existe, asume falso
+
+   const cuitElem = document.getElementById('cuitCliente');
+   const cuit = cuitElem ? cuitElem.value : null;
+
+   if(fis && (!cuit || cuit.length !== 11)) return showToast("CUIT inválido para factura", true);
+
+   // 5. Calcular totales numéricos (Evitar errores de texto)
+   const surchargePct = parseFloat(document.getElementById('surchargePct').value) || 0;
+   const discountAmt = parseFloat(document.getElementById('discountAmt').value) || 0;
    
+   // Recalcular total matemático
+   let subtotal = currentCart.reduce((a,b) => a + (b.price * b.qty), 0);
+   const surchargeVal = subtotal * (surchargePct / 100);
+   const finalTotal = subtotal + surchargeVal - discountAmt;
+
+   // 6. Armar objeto de venta
+   const cardNameElem = document.getElementById('cardName');
    const sale = { 
        id: Date.now(), 
        date: new Date().toLocaleString(), 
-       seller: currentUser.name, 
+       seller: currentUser ? currentUser.name : 'Admin', 
        items: currentCart, 
-       total: nums.total, 
+       total: finalTotal, 
        payment: payMethod,
-       card_name: (payMethod === 'Debito' || payMethod === 'Credito') ? cardName : '',
-       surcharge: nums.surcharge,
-       discount: nums.descAmt,
-       cuit: fis?cuit:null, 
-       fiscal: "No Fiscal" 
+       card_name: cardNameElem ? cardNameElem.value : '',
+       surcharge: surchargePct,
+       discount: discountAmt,
+       client_id: cliId,
+       cuit: fis ? cuit : null,
+       fiscal: fis ? "Pendiente" : "No Fiscal",
+       items_json: "" 
    };
 
-   if(fis){
-       showToast("Conectando ARCA...", false);
-       try {
+   console.log("Enviando venta...", sale);
+
+   try {
+       // 7. Si se marcó fiscal, intentamos facturar (Solo si existe el módulo)
+       if(fis && window.electronAPI.facturar){
+           showToast("Conectando con AFIP...", false);
            const r = await window.electronAPI.facturar(sale);
-           if(r.success) { sale.fiscal=`CAE:${r.cae}`; showToast("Factura OK"); }
-           else { if(!confirm("Fallo AFIP. ¿Guardar local?")) return; sale.fiscal="Error AFIP"; }
-       } catch(e){ alert("Error backend"); return; }
+           if(r.success) { 
+               sale.fiscal = `CAE: ${r.cae}`; 
+               showToast("Factura AFIP OK"); 
+           } else { 
+               if(!confirm("Fallo AFIP: " + r.error + "\n¿Guardar como venta común?")) return;
+               sale.fiscal = "Error AFIP"; 
+           }
+       }
+
+       // 8. Guardar en Base de Datos Local
+       const res = await window.electronAPI.saveSale(sale);
+       
+       if(res.success) {
+           // ÉXITO
+           alert("¡Venta Guardada Correctamente!"); 
+           
+           // Limpieza
+           currentCart = []; 
+           document.getElementById('surchargePct').value = '';
+           document.getElementById('discountAmt').value = '';
+           renderCart(); 
+           
+           // Si existe el checkbox fiscal, lo desmarcamos
+           if(fisElem) { 
+               fisElem.checked = false; 
+               toggleFiscal(); 
+           }
+
+           await reloadData(); 
+       } else {
+           throw new Error(res.error || "Error al escribir en base de datos");
+       }
+   } catch(e) {
+       alert("ERROR AL PROCESAR VENTA:\n" + e.message);
+       console.error(e);
    }
-   await window.electronAPI.saveSale(sale);
-   printTicket(sale);
-   currentCart=[]; 
-   document.getElementById('surchargePct').value=0;
-   document.getElementById('discountAmt').value=0;
-   renderCart(); 
-   document.getElementById('checkFiscal').checked=false; toggleFiscal(); await reloadData();
 }
 
 function printTicket(s){
-   const area = document.getElementById('printable-area');
-   area.innerHTML = `<div class="ticket-view"><div class="ticket-center"><h2 style="margin:0">Kiosco Mandalay</h2><p>${s.date}</p><p>Ticket #${s.id.toString().slice(-6)}</p><p>Atendió: ${s.seller}</p></div><div class="ticket-line"></div>${s.items.map(i=>`<div class="ticket-row"><span>${i.isManual?'1':i.qty} x ${i.name}</span><span>$${i.subtotal.toFixed(2)}</span></div>`).join('')}<div class="ticket-line"></div><div class="ticket-row"><strong>TOTAL</strong><strong>$${s.total.toFixed(2)}</strong></div><div class="ticket-row"><span>Pago</span><span>${s.payment}</span></div><div class="ticket-disclaimer">NO VÁLIDO COMO FACTURA<br>Control Interno</div></div>`;
-   window.print();
+   // Simulación de ticket
+   console.log("Imprimiendo ticket...", s);
 }
 
 function toggleAllLabels(chk){ document.querySelectorAll('.lbl-chk').forEach(c => c.checked = chk.checked); }
@@ -597,12 +758,75 @@ function printSelectedLabels(){
     const selected = [];
     document.querySelectorAll('.lbl-chk:checked').forEach(c => { const code = c.dataset.code; const prod = DB.stock.find(s => s.code === code); if(prod) selected.push(prod); });
     if(selected.length === 0) return showToast("Seleccione productos", true);
-    const area = document.getElementById('printable-area');
-    area.innerHTML = `<div class="labels-view">${selected.map(p => `<div class="label-item"><div class="label-name">${p.name.substring(0,40)}</div><div class="label-price">$${p.price.toFixed(2)}</div><div class="label-code">${p.code}</div></div>`).join('')}</div>`;
-    window.print();
+    window.print(); // Usar estilos CSS de impresión
 }
 
-// --- STOCK LOGIC (Mejorado: Calculo Bidireccional y No Obligatorio) ---
+// --- LOGICA CLIENTES ---
+function fillClientSelect(){
+    const sel = document.getElementById('posClient');
+    sel.innerHTML = '<option value="">Consumidor Final</option>' + DB.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    
+    sel.onchange = () => {
+        const c = DB.clients.find(x => x.id == sel.value);
+        const badge = document.getElementById('clientDebtBadge');
+        if(c && c.balance > 0) {
+            badge.style.display = 'inline';
+            badge.innerText = `Deuda: $${c.balance.toFixed(2)}`;
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+async function saveClient(){
+    const c = {
+        id: document.getElementById('cli_id').value,
+        name: document.getElementById('cli_name').value,
+        phone: document.getElementById('cli_phone').value,
+        address: document.getElementById('cli_address').value,
+        balance: parseFloat(document.getElementById('cli_balance').value)||0 // Deuda inicial
+    };
+    if(!c.name) return showToast("Nombre obligatorio", true);
+    await window.electronAPI.saveClient(c);
+    document.getElementById('cli_name').value='';
+    document.getElementById('cli_balance').value='';
+    showToast("Cliente Guardado"); reloadData();
+}
+
+function renderClients(){
+    const q = document.getElementById('searchClient').value.toLowerCase();
+    const tbody = document.querySelector('#clientsTable tbody');
+    tbody.innerHTML = DB.clients.filter(c => c.name.toLowerCase().includes(q)).map(c => `
+        <tr>
+            <td>${c.name}</td>
+            <td>${c.phone}</td>
+            <td>${c.address}</td>
+            <td style="color:${c.balance>0?'var(--danger)':'var(--accent)'}; font-weight:bold">$${c.balance.toFixed(2)}</td>
+            <td><button class="btn secondary" onclick="openPayBox(${c.id})"><i class="fas fa-money-bill"></i> Pagar</button></td>
+        </tr>
+    `).join('');
+}
+
+function openPayBox(id){
+    clientToPay = DB.clients.find(x => x.id === id);
+    document.getElementById('paymentBox').style.display='block';
+    document.getElementById('lblDebt').innerText = '$' + clientToPay.balance.toFixed(2);
+    document.getElementById('payAmt').focus();
+}
+
+async function processPayment(){
+    const amt = parseFloat(document.getElementById('payAmt').value);
+    if(!amt || amt <= 0) return showToast("Monto inválido", true);
+    if(!confirm(`¿Registrar pago de $${amt} para ${clientToPay.name}?`)) return;
+
+    await window.electronAPI.payDebt({clientId: clientToPay.id, amount: amt});
+    showToast("Pago registrado");
+    document.getElementById('paymentBox').style.display='none';
+    document.getElementById('payAmt').value='';
+    reloadData();
+}
+
+// --- STOCK LOGIC ---
 function calcFromCost(){
     const cost = parseFloat(document.getElementById('st_cost').value)||0;
     const margin = parseFloat(document.getElementById('st_margin').value)||0;
@@ -632,9 +856,7 @@ async function saveProduct(){
        price: parseFloat(document.getElementById('st_price').value)||0, 
        qty: parseInt(document.getElementById('st_qty').value)||0 
    };
-   // Validación relajada: Solo código
    if(!p.code) return showToast("Código es obligatorio", true);
-   
    await window.electronAPI.saveProduct(p); 
    clearSt(); showToast("Guardado"); document.getElementById('st_code').focus(); await reloadData();
 }
@@ -643,11 +865,9 @@ function clearSt(){ ['st_code','st_name','st_prov','st_cost','st_margin','st_qty
 function renderStock(){
    const q = document.getElementById('searchSt').value.toLowerCase();
    document.querySelector('#stockTable tbody').innerHTML = DB.stock.filter(s=>s.name.toLowerCase().includes(q)||s.code.includes(q)).map(s=>{
-       // ALERTA STOCK VISUAL
        let cls = 'stock-ok';
        if(s.qty <= 0) cls = 'stock-crit';
        else if(s.qty <= 2) cls = 'stock-warn';
-       
        return `<tr><td><input type="checkbox" class="lbl-chk" data-code="${s.code}"></td><td>${s.code}</td><td>${s.name}</td><td>${s.supplier||'-'}</td><td>$${s.price.toFixed(2)}</td><td><span class="stock-badge ${cls}">${s.qty}</span></td><td><button class="btn secondary" onclick="editProd('${s.code}')"><i class="fas fa-edit"></i></button></td></tr>`;
    }).join('');
 }
@@ -697,17 +917,23 @@ async function factoryReset(){
     } 
 }
 function updateArqueo(){
-    let cash=0, dig=0;
-    // Solo ventas de hoy para el arqueo visual (opcional)
+    let cash=0, dig=0, cta=0; // Cta = Cuenta Corriente
+    // Ventas de hoy solamente
     const todayStr = new Date().toLocaleString().split(',')[0];
+    
     DB.sales.forEach(s=>{ 
         if(s.date.startsWith(todayStr)) {
-             if(s.payment==='Efectivo') cash+=s.total; else dig+=s.total; 
+             if(s.payment==='Efectivo') cash+=s.total; 
+             else if(s.payment==='Cuenta Corriente') cta+=s.total;
+             else dig+=s.total; 
         }
     });
+    
     document.getElementById('sys_cash').innerText=`$${cash.toFixed(2)}`;
     document.getElementById('sys_dig').innerText=`$${dig.toFixed(2)}`;
-    document.getElementById('sys_total').innerText=`$${(cash+dig).toFixed(2)}`;
+    document.getElementById('sys_cta').innerText=`$${cta.toFixed(2)}`; // Mostrar Fiado
+    document.getElementById('sys_total').innerText=`$${(cash+dig+cta).toFixed(2)}`;
+    
     document.querySelector('#historyTable tbody').innerHTML = DB.sales.slice().reverse().slice(0,10).map(s=>`<tr><td>${s.date.split(',')[1]}</td><td>$${s.total.toFixed(2)}</td><td>${s.payment}</td></tr>`).join('');
     calcCash();
 }
@@ -729,12 +955,10 @@ async function saveClosure(){
     const sys = parseFloat(document.getElementById('sys_cash').innerText.replace('$',''));
     const diff = real - sys;
     
-    // Guardar Cierre
     const clos = { date: new Date().toLocaleString(), user: currentUser.name, sysCash: sys, realCash: real, diff: diff, status: diff>=0?"OK":"FALTA", details: det };
     await window.electronAPI.saveClosure(clos);
     
-    // Exportar Excel Profesional
-    // Filtrar ventas de hoy
+    // EXCEL
     const todayStr = new Date().toLocaleString().split(',')[0];
     const ventasHoy = DB.sales.filter(s => s.date.startsWith(todayStr));
     const r = await window.electronAPI.exportarExcel({ventas: ventasHoy, cierres: DB.closures});
