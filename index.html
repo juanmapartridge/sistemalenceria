@@ -242,6 +242,46 @@
   </div>
 </div>
 
+<div id="client-detail-overlay" class="overlay" style="display:none">
+  <div class="overlay-box" style="width: 800px; max-width:95%; height:80vh; display:flex; flex-direction:column; text-align:left">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+        <h3 style="margin:0; color:var(--primary)" id="detailClientName">Historial</h3>
+        <button class="btn secondary" onclick="document.getElementById('client-detail-overlay').style.display='none'"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <div class="table-container">
+        <table id="clientHistoryTable">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Detalle / Artículos</th>
+                    <th>Vendedor</th>
+                    <th>Monto</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+  </div>
+</div>
+
+<div id="return-overlay" class="overlay" style="display:none">
+  <div class="overlay-box" style="border-color:var(--danger)">
+    <h3 style="color:var(--danger)"><i class="fas fa-undo"></i> DEVOLUCIÓN</h3>
+    <p style="font-size:14px; color:var(--text-muted)">Ingresá el Código o Nombre del producto a devolver:</p>
+    
+    <input id="return_input" class="modal-input" placeholder="Código / Nombre..." autofocus 
+           style="border-color:var(--danger); text-align:center; font-size:20px; font-weight:bold"
+           onkeydown="if(event.key==='Enter') confirmReturnModal()">
+           
+    <div style="display:flex; gap:10px; margin-top:20px">
+        <button class="btn secondary" style="flex:1" onclick="document.getElementById('return-overlay').style.display='none'">Cancelar</button>
+        <button class="btn" style="flex:1; background:var(--danger)" onclick="confirmReturnModal()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <div id="manual-overlay" class="overlay" style="display:none">
   <div class="overlay-box">
     <h3 style="color:var(--text-main)"><i class="fas fa-weight-hanging"></i> Carga Manual</h3>
@@ -283,7 +323,7 @@
                <div style="flex:1"><label>Escanear</label><input id="scanInput" placeholder="Código..." autofocus></div>
                <div style="width:100px"><label>Cant.</label><input id="scanQty" type="number" value="1" min="1" style="text-align:center"></div>
                <button class="btn" onclick="manualScan(1)">Agregar</button>
-<button class="btn" style="background:var(--danger)" onclick="manualScan(-1)">Devolución</button> 
+<button class="btn" style="background:var(--danger)" onclick="openReturnModal()">Devolución</button>
                <button class="btn secondary" style="height:52px;" onclick="openManualModal()"><i class="fas fa-keyboard"></i> Manual</button>
              </div>
           </div>
@@ -447,12 +487,21 @@
               </div>
 
               <div id="paymentBox" style="display:none; margin-top:30px; padding:15px; border:1px solid var(--primary); background:rgba(244,63,94,0.1); border-radius:10px;">
-                  <h4 style="margin-top:0; color:var(--primary)">Registrar Pago</h4>
-                  <p>Deuda Actual: <strong id="lblDebt" style="font-size:18px">$0.00</strong></p>
-                  <label>Monto que paga ($)</label>
-                  <input type="number" id="payAmt" placeholder="Monto">
-                  <button class="btn success" style="width:100%; margin-top:10px" onclick="processPayment()">Confirmar Pago</button>
-              </div>
+    <h4 style="margin-top:0; color:var(--primary)">Registrar Pago de Deuda</h4>
+    <p>Deuda Actual: <strong id="lblDebt" style="font-size:18px">$0.00</strong></p>
+    
+    <label>Monto que paga ($)</label>
+    <input type="number" id="payAmt" placeholder="Monto">
+    
+    <label>Medio de Pago</label>
+    <select id="payMethodDebt" style="margin-bottom:10px">
+        <option value="Efectivo">Efectivo</option>
+        <option value="Transferencia">Transferencia</option>
+        <option value="Debito">Débito</option>
+    </select>
+
+    <button class="btn success" style="width:100%; margin-top:10px" onclick="processPayment()">Confirmar Pago</button>
+</div>
            </div>
         </div>
         <div class="col">
@@ -625,41 +674,62 @@ function toggleCardInput(){
     else cardInput.style.display = 'none';
 }
 
-function manualScan(direction){ // direction: 1 es Venta, -1 es Devolución
-    let code = document.getElementById('scanInput').value;
+// REEMPLAZAR LA FUNCIÓN manualScan POR ESTA:
+function manualScan(direction){ 
+    let input = document.getElementById('scanInput');
+    let code = input.value.trim();
+
+    // NUEVO: Si la caja está vacía y es devolución, PREGUNTAR código
+    if(!code && direction === -1){
+        code = prompt("Ingrese el CÓDIGO o NOMBRE del producto a devolver:");
+    }
+
+    // Si sigue vacío después de preguntar, avisar y salir
+    if(!code) return showToast("Ingrese un código primero", true);
+
+    // 1. Buscamos en la base de datos (con == para evitar error texto vs numero)
+    // Usamos el buscador inteligente que hicimos antes para que encuentre "Selu Rojo" también
+    const terms = code.toLowerCase().split(" ").filter(t => t.length > 0);
     
-    // VALIDACIÓN 1: Si está vacío, no hacer nada
-    if(!code) return; 
+    // Primero intentamos búsqueda exacta por CÓDIGO (prioridad al escanear)
+    let prod = DB.stock.find(s => s.code == code);
 
-    // VALIDACIÓN 2: Quitamos espacios vacíos (por si copiaste y pegaste con espacio)
-    code = code.trim();
-
-    // BUSQUEDA CORREGIDA: Usamos "==" para que "10" (texto) sea igual a 10 (número)
-    const prod = DB.stock.find(s => s.code == code);
+    // Si no encuentra por código exacto, busca por nombre inteligente
+    if(!prod){
+        prod = DB.stock.find(s => {
+            const productText = `${s.name} ${s.code} ${s.brand||''} ${s.category||''} ${s.color||''}`.toLowerCase();
+            return terms.every(term => productText.includes(term));
+        });
+    }
 
     if(prod){
-        // Si es venta normal (1) y no hay stock, avisar.
-        if(direction === 1 && prod.qty <= 0) return showToast("SIN STOCK", true);
+        // Si es VENTA (1) y no hay stock, avisar.
+        // Si es DEVOLUCIÓN (-1), no importa el stock, permitimos devolver.
+        if(direction === 1 && prod.qty <= 0) {
+            playBeep(); 
+            return showToast("SIN STOCK FÍSICO", true);
+        }
         
-        // Agregamos con cantidad positiva o negativa
+        // Agregamos al carrito (pasamos direction que puede ser 1 o -1)
         // IMPORTANTE: Pasamos prod.code para asegurar que se use el del sistema
-        addItemToCart(prod.name, 1, prod.price, prod.code, false);
+        addItemToCart(prod.name, direction, prod.price, prod.code, false);
         
-        // EXITOSO
-        playBeep(); // <--- AHORA SÍ VA A SONAR
-        document.getElementById('scanInput').value = '';
-        document.getElementById('scanInput').focus();
+        playBeep(); 
+        input.value = ''; // Limpiar caja
+        input.focus();    // Volver a poner el cursor listo
         
+        if(direction === -1) showToast("Producto en Devolución (-1)");
+
     } else {
-        playBeep(); // Sonido también en error (opcional, o usar otro sonido)
-        showToast("Producto NO Encontrado", true); 
+        playBeep();
+        showToast("No encontrado", true); 
         
-        // Lógica opcional para productos manuales fuera de stock
-        if(confirm(`El código "${code}" no existe.\n¿Agregar ítem manual genérico?`)) {
+        // Opción manual si no existe
+        if(confirm(`El código "${code}" no existe en sistema.\n¿Agregar ítem MANUAL?`)) {
              let price = prompt("Precio del producto manual:");
-             if(price) addItemToCart("Manual (" + code + ")", 1, parseFloat(price), "MANUAL", true);
-             document.getElementById('scanInput').value = '';
-             document.getElementById('scanInput').focus();
+             if(price) addItemToCart("Manual (" + code + ")", direction, parseFloat(price), "MANUAL", true);
+             input.value = '';
+             input.focus();
         }
     }
 }
@@ -703,11 +773,30 @@ function calcTotalFinal(){
     const surPct = parseFloat(document.getElementById('surchargePct').value)||0;
     const descAmt = parseFloat(document.getElementById('discountAmt').value)||0;
     
+    // Cálculo
     const surcharge = subtotal * (surPct/100);
     const total = subtotal + surcharge - descAmt;
     
-    document.getElementById('lblSubtotal').innerText = `$${subtotal.toFixed(2)}`;
-    document.getElementById('displayTotal').innerText = '$' + total.toFixed(2);
+    // DOM Elements
+    const lblTotal = document.getElementById('displayTotal');
+    const lblSub = document.getElementById('lblSubtotal');
+
+    // ACTUALIZACIÓN VISUAL
+    lblSub.innerText = `$${subtotal.toFixed(2)}`;
+    
+    if(total >= 0){
+        // VENTA NORMAL O CAMBIO CON DIFERENCIA A PAGAR
+        lblTotal.style.color = "var(--accent)"; // Verde
+        lblTotal.innerText = '$' + total.toFixed(2);
+        // Si hay items negativos y positivos mezclados, es un cambio
+        const hayDevolucion = currentCart.some(i => i.qty < 0);
+        if(hayDevolucion) document.getElementById('toast').innerHTML = "<span><i class='fas fa-exchange-alt'></i> Cambio: Cliente paga diferencia</span>";
+    } else {
+        // DEVOLUCIÓN (DINERO A FAVOR DEL CLIENTE)
+        lblTotal.style.color = "var(--danger)"; // Rojo
+        lblTotal.innerText = 'A DEVOLVER: $' + Math.abs(total).toFixed(2);
+    }
+
     return { subtotal, surcharge, descAmt, total };
 }
 
@@ -721,100 +810,121 @@ function renderCart(){
 function delItem(i){ currentCart.splice(i,1); renderCart(); }
 
 async function finishSale(){
-   // 1. Validar si hay productos
-   if(currentCart.length === 0) return showToast("El carrito está vacío", true);
-   
-   // 2. Obtener datos básicos
-   const payMethod = document.getElementById('paymentMethod').value;
-   const cliIdVal = document.getElementById('posClient').value;
-   const cliId = cliIdVal ? parseInt(cliIdVal) : null;
+    // 1. Validar si hay productos
+    if(currentCart.length === 0) return showToast("El carrito está vacío", true);
+    
+    // 2. Calcular números finales
+    const { total } = calcTotalFinal(); 
+    
+    // 3. Datos Cliente y Pago
+    let payMethod = document.getElementById('paymentMethod').value;
+    const cliIdVal = document.getElementById('posClient').value;
+    const cliId = cliIdVal ? parseInt(cliIdVal) : null;
 
-   // 3. Validación estricta de Cta Corriente
-   if(payMethod === 'Cuenta Corriente' && !cliId){
-       alert("ERROR: Para vender en Cuenta Corriente DEBE seleccionar un Cliente.");
-       return;
-   }
+    // --- ALERTA DE HIGIENE (LENCERÍA) ---
+    const hayBombachas = currentCart.some(i => 
+        (i.name.toLowerCase().includes('bombacha') || i.name.toLowerCase().includes('colaless') || i.name.toLowerCase().includes('tang')) 
+        && i.qty > 0 
+    );
 
-   // 4. Obtener datos Fiscales (CORRECCIÓN DEL ERROR)
-   // Verificamos si los elementos existen antes de leerlos para que no explote
-   const fisElem = document.getElementById('checkFiscal');
-   const fis = fisElem ? fisElem.checked : false; // Si no existe, asume falso
+    if(hayBombachas){
+        if(!confirm("👙 ATENCIÓN: La venta incluye ropa interior inferior.\n\n¿Avisaste al cliente que NO TIENE CAMBIO por higiene?")){
+            return; 
+        }
+    }
 
-   const cuitElem = document.getElementById('cuitCliente');
-   const cuit = cuitElem ? cuitElem.value : null;
+    // --- LÓGICA DE DEVOLUCIÓN / SALDO A FAVOR ---
+    if (total < 0) {
+        const montoDevolver = Math.abs(total).toFixed(2);
 
-   if(fis && (!cuit || cuit.length !== 11)) return showToast("CUIT inválido para factura", true);
+        if (cliId) {
+            // CASO A: HAY CLIENTE SELECCIONADO
+            // Preguntamos si quiere la plata o dejarlo en la cuenta
+            if (confirm(`💰 DEVOLUCIÓN DE $${montoDevolver}\n\nCliente: ${document.getElementById('posClient').selectedOptions[0].text}\n\n[ACEPTAR] = Dejar como SALDO A FAVOR en Cuenta Corriente.\n[CANCELAR] = Devolver EFECTIVO ahora.`)) {
+                payMethod = 'Cuenta Corriente'; 
+            } else {
+                payMethod = 'Efectivo'; 
+            }
+        } else {
+            // CASO B: CONSUMIDOR FINAL (Sin cuenta)
+            // Solo efectivo, pero avisamos.
+            if(!confirm(`⚠️ DEVOLUCIÓN EN EFECTIVO: $${montoDevolver}\n\n(Para dejar saldo a favor, primero seleccioná un Cliente)\n\n¿Confirmar entrega de dinero?`)) return;
+            payMethod = 'Efectivo';
+        }
+    }
 
-   // 5. Calcular totales numéricos (Evitar errores de texto)
-   const surchargePct = parseFloat(document.getElementById('surchargePct').value) || 0;
-   const discountAmt = parseFloat(document.getElementById('discountAmt').value) || 0;
-   
-   // Recalcular total matemático
-   let subtotal = currentCart.reduce((a,b) => a + (b.price * b.qty), 0);
-   const surchargeVal = subtotal * (surchargePct / 100);
-   const finalTotal = subtotal + surchargeVal - discountAmt;
+    // 4. Validación Cta Corriente normal
+    if(payMethod === 'Cuenta Corriente' && !cliId){
+        alert("ERROR: Para Cuenta Corriente DEBE seleccionar un Cliente.");
+        return;
+    }
 
-   // 6. Armar objeto de venta
-   const cardNameElem = document.getElementById('cardName');
-   const sale = { 
-       id: Date.now(), 
-       date: new Date().toLocaleString(), 
-       seller: currentUser ? currentUser.name : 'Admin', 
-       items: currentCart, 
-       total: finalTotal, 
-       payment: payMethod,
-       card_name: cardNameElem ? cardNameElem.value : '',
-       surcharge: surchargePct,
-       discount: discountAmt,
-       client_id: cliId,
-       cuit: fis ? cuit : null,
-       fiscal: fis ? "Pendiente" : "No Fiscal",
-       items_json: "" 
-   };
+    // 5. Fiscal
+    const fisElem = document.getElementById('checkFiscal');
+    const fis = fisElem ? fisElem.checked : false;
+    const cuitElem = document.getElementById('cuitCliente');
+    const cuit = cuitElem ? cuitElem.value : null;
 
-   console.log("Enviando venta...", sale);
+    if(fis && (!cuit || cuit.length !== 11)) return showToast("CUIT inválido para factura", true);
 
-   try {
-       // 7. Si se marcó fiscal, intentamos facturar (Solo si existe el módulo)
-       if(fis && window.electronAPI.facturar){
-           showToast("Conectando con AFIP...", false);
-           const r = await window.electronAPI.facturar(sale);
-           if(r.success) { 
-               sale.fiscal = `CAE: ${r.cae}`; 
-               showToast("Factura AFIP OK"); 
-           } else { 
-               if(!confirm("Fallo AFIP: " + r.error + "\n¿Guardar como venta común?")) return;
-               sale.fiscal = "Error AFIP"; 
-           }
-       }
+    // 6. Armar objeto
+    const sale = { 
+        id: Date.now(), 
+        date: new Date().toLocaleString(), 
+        seller: currentUser ? currentUser.name : 'Admin', 
+        items: currentCart, 
+        total: total, 
+        payment: payMethod,
+        card_name: document.getElementById('cardName').value,
+        surcharge: parseFloat(document.getElementById('surchargePct').value)||0,
+        discount: parseFloat(document.getElementById('discountAmt').value)||0,
+        client_id: cliId,
+        cuit: fis ? cuit : null,
+        fiscal: fis ? "Pendiente" : "No Fiscal",
+        items_json: "" 
+    };
 
-       // 8. Guardar en Base de Datos Local
-       const res = await window.electronAPI.saveSale(sale);
-       
-       if(res.success) {
-           // ÉXITO
-           alert("¡Venta Guardada Correctamente!"); 
-           
-           // Limpieza
-           currentCart = []; 
-           document.getElementById('surchargePct').value = '';
-           document.getElementById('discountAmt').value = '';
-           renderCart(); 
-           
-           // Si existe el checkbox fiscal, lo desmarcamos
-           if(fisElem) { 
-               fisElem.checked = false; 
-               toggleFiscal(); 
-           }
+    console.log("Procesando...", sale);
 
-           await reloadData(); 
-       } else {
-           throw new Error(res.error || "Error al escribir en base de datos");
-       }
-   } catch(e) {
-       alert("ERROR AL PROCESAR VENTA:\n" + e.message);
-       console.error(e);
-   }
+    // 7. Guardar
+    try {
+        if(fis && total > 0 && window.electronAPI.facturar){
+             showToast("Conectando AFIP...", false);
+             const r = await window.electronAPI.facturar(sale);
+             if(r.success) { sale.fiscal = `CAE: ${r.cae}`; showToast("Factura OK"); } 
+             else {
+                 if(!confirm("Fallo AFIP: " + r.error + "\n¿Guardar como venta común?")) return;
+                 sale.fiscal = "Error AFIP";
+             }
+        }
+
+        const res = await window.electronAPI.saveSale(sale);
+        
+        if(res.success) {
+            playBeep(); // Sonido
+            
+            // --- CORRECCIÓN RUIDO INFINITO ---
+            // Usamos Toast en vez de Alert para no trabar el sonido
+            if(total < 0){
+                showToast(`✅ Devolución registrada: ${payMethod} $${Math.abs(total).toFixed(2)}`);
+            } else {
+                showToast("¡Venta Guardada con Éxito!");
+            }
+            
+            // Limpieza
+            currentCart = []; 
+            document.getElementById('surchargePct').value = '';
+            document.getElementById('discountAmt').value = '';
+            document.getElementById('paymentMethod').value = 'Efectivo'; 
+            renderCart(); 
+            if(fisElem) { fisElem.checked = false; toggleFiscal(); }
+            await reloadData(); 
+        } else {
+            throw new Error(res.error || "Error en base de datos");
+        }
+    } catch(e) {
+        alert("ERROR AL PROCESAR:\n" + e.message);
+    }
 }
 
 function printTicket(s){
@@ -865,15 +975,44 @@ async function saveClient(){
 function renderClients(){
     const q = document.getElementById('searchClient').value.toLowerCase();
     const tbody = document.querySelector('#clientsTable tbody');
-    tbody.innerHTML = DB.clients.filter(c => c.name.toLowerCase().includes(q)).map(c => `
+    
+    // Fecha de hoy para comparar
+    const hoy = new Date();
+
+    tbody.innerHTML = DB.clients.filter(c => c.name.toLowerCase().includes(q)).map(c => {
+        // --- LÓGICA ALERTA 30 DÍAS ---
+        // Buscamos el último movimiento de este cliente
+        const lastMov = DB.movements.filter(m => m.client_id === c.id).pop(); // El ultimo
+        let alertaHtml = "";
+        
+        if(lastMov){
+            // Convertimos la fecha del movimiento (dd/mm/aaaa) a objeto Date
+            // Asumiendo formato local español: 15/12/2025
+            const parts = lastMov.date.split(',')[0].split('/');
+            // Ojo: Date espera (año, mes index 0, dia)
+            // Si tu fecha es dd/mm/yyyy:
+            const movDate = new Date(parts[2], parts[1]-1, parts[0]);
+            
+            const diffTime = Math.abs(hoy - movDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            if(diffDays > 30 && c.balance > 0){
+                alertaHtml = `<span style="color:var(--warning); font-size:12px; font-weight:bold"><i class="fas fa-history"></i> +30 días (${diffDays})</span>`;
+            }
+        }
+        // ------------------------------
+
+        return `
         <tr>
-            <td>${c.name}</td>
+            <td>${c.name} <br> ${alertaHtml}</td>
             <td>${c.phone}</td>
             <td>${c.address}</td>
             <td style="color:${c.balance>0?'var(--danger)':'var(--accent)'}; font-weight:bold">$${c.balance.toFixed(2)}</td>
-            <td><button class="btn secondary" onclick="openPayBox(${c.id})"><i class="fas fa-money-bill"></i> Pagar</button></td>
-        </tr>
-    `).join('');
+            <td>
+                <button class="btn secondary" onclick="openClientDetails(${c.id})" title="Ver Historial Detallado"><i class="fas fa-list"></i></button>
+                <button class="btn secondary" onclick="openPayBox(${c.id})" title="Registrar Pago"><i class="fas fa-hand-holding-usd"></i></button>
+        </tr>`;
+    }).join('');
 }
 
 function openPayBox(id){
@@ -885,10 +1024,17 @@ function openPayBox(id){
 
 async function processPayment(){
     const amt = parseFloat(document.getElementById('payAmt').value);
+    const method = document.getElementById('payMethodDebt').value; // Nuevo
+    
     if(!amt || amt <= 0) return showToast("Monto inválido", true);
-    if(!confirm(`¿Registrar pago de $${amt} para ${clientToPay.name}?`)) return;
+    if(!confirm(`¿Registrar pago de $${amt} en ${method}?`)) return;
 
-    await window.electronAPI.payDebt({clientId: clientToPay.id, amount: amt});
+    // Guardamos el metodo dentro de la nota para no romper la base de datos vieja
+    // Ejemplo Nota: "Pago [Efectivo]"
+    const note = `Pago [${method}]`;
+
+    await window.electronAPI.payDebt({clientId: clientToPay.id, amount: amt, note: note});
+    
     showToast("Pago registrado");
     document.getElementById('paymentBox').style.display='none';
     document.getElementById('payAmt').value='';
@@ -1000,10 +1146,10 @@ async function factoryReset(){
     } 
 }
 function updateArqueo(){
-    let cash=0, dig=0, cta=0; // Cta = Cuenta Corriente
-    // Ventas de hoy solamente
+    let cash=0, dig=0, cta=0; 
     const todayStr = new Date().toLocaleString().split(',')[0];
     
+    // 1. Sumamos las VENTAS directas
     DB.sales.forEach(s=>{ 
         if(s.date.startsWith(todayStr)) {
              if(s.payment==='Efectivo') cash+=s.total; 
@@ -1011,13 +1157,29 @@ function updateArqueo(){
              else dig+=s.total; 
         }
     });
+
+    // 2. Sumamos los PAGOS DE DEUDA (Nuevo)
+    // Filtramos movimientos de hoy que sean de tipo 'PAGO'
+    DB.movements.forEach(m => {
+        if(m.date.startsWith(todayStr) && m.type === 'PAGO'){
+            // Leemos la nota para ver si fue efectivo o digital
+            // Formato esperado: "Pago [Efectivo]"
+            if(m.note.includes('[Efectivo]')){
+                cash += m.amount;
+            } else {
+                dig += m.amount; // Transferencia, debito, etc va a digital
+            }
+        }
+    });
     
     document.getElementById('sys_cash').innerText=`$${cash.toFixed(2)}`;
     document.getElementById('sys_dig').innerText=`$${dig.toFixed(2)}`;
-    document.getElementById('sys_cta').innerText=`$${cta.toFixed(2)}`; // Mostrar Fiado
-    document.getElementById('sys_total').innerText=`$${(cash+dig+cta).toFixed(2)}`;
+    document.getElementById('sys_cta').innerText=`$${cta.toFixed(2)}`;
+    document.getElementById('sys_total').innerText=`$${(cash+dig+cta).toFixed(2)}`; // Total global movido
     
+    // Tabla historial ventas (mantenemos igual)
     document.querySelector('#historyTable tbody').innerHTML = DB.sales.slice().reverse().slice(0,10).map(s=>`<tr><td>${s.date.split(',')[1]}</td><td>$${s.total.toFixed(2)}</td><td>${s.payment}</td></tr>`).join('');
+    
     calcCash();
 }
 function calcCash(){
@@ -1121,7 +1283,11 @@ const filtered = DB.stock.filter(s => {
             <td>$${s.price.toFixed(2)}</td>
             <td style="font-weight:bold; color:${s.qty<=0?'red':'lime'}">${s.qty}</td>
             <td><button class="btn secondary" onclick="editProd('${s.code}')">Edit</button></td>
-        </tr>
+<td>
+    <button class="btn secondary" onclick="editProd('${s.code}')"><i class="fas fa-edit"></i></button>
+    <button class="btn-sm" style="color:var(--danger); border-color:var(--danger); margin-left:5px;" onclick="deleteProd('${s.code}')"><i class="fas fa-trash"></i></button>
+</td>
+            </tr>
     `).join('');
 }
 
@@ -1157,10 +1323,94 @@ function checkPromos(){
     calcTotalFinal();
 }
 
+// --- LÓGICA DE VENTANA DE DEVOLUCIÓN ---
+
+function openReturnModal(){
+    // 1. Si ya escribió algo en el scanner principal, usar eso directo
+    const mainInput = document.getElementById('scanInput');
+    if(mainInput.value.trim().length > 0){
+        manualScan(-1); // Usa la lógica normal
+        return;
+    }
+    
+    // 2. Si está vacío, abrir la ventana roja
+    document.getElementById('return-overlay').style.display = 'flex';
+    document.getElementById('return_input').value = '';
+    setTimeout(() => document.getElementById('return_input').focus(), 100);
+}
+
+function confirmReturnModal(){
+    const val = document.getElementById('return_input').value.trim();
+    if(!val) return showToast("Ingrese un dato", true);
+    
+    // Usamos el input principal como puente para reutilizar la lógica de búsqueda
+    document.getElementById('scanInput').value = val;
+    document.getElementById('return-overlay').style.display = 'none';
+    
+    // Ejecutamos la devolución
+    manualScan(-1);
+}
+
+async function deleteProd(code){
+    if(confirm(`¿Estás seguro de eliminar el producto código: ${code}?`)){
+        await window.electronAPI.deleteProduct(code);
+        showToast("Producto eliminado");
+        reloadData();
+    }
+}
+
 async function addUser(){ const n=document.getElementById('u_name').value, p=document.getElementById('u_pin').value; if(n&&p) { await window.electronAPI.addUser({name:n, pin:p}); await reloadData(); document.getElementById('u_name').value=''; } }
 function renderUsers(){ document.querySelector('#usersTable tbody').innerHTML=DB.users.map(u=>`<tr><td>${u.name}</td><td>****</td><td></td></tr>`).join(''); }
 function toggleFiscal(){ document.getElementById('fiscalInputs').style.display=document.getElementById('checkFiscal').checked?'flex':'none'; }
 function showToast(m,e=false){ const t=document.getElementById('toast'); t.innerHTML= e ? `<i class="fas fa-exclamation-triangle"></i> ${m}` : `<i class="fas fa-check-circle"></i> ${m}`; t.className=e?'toast show error':'toast show'; setTimeout(()=>t.className='toast',3000); }
+function openClientDetails(clientId){
+    const c = DB.clients.find(x => x.id === clientId);
+    if(!c) return;
+
+    document.getElementById('detailClientName').innerText = `Ficha: ${c.name}`;
+    document.getElementById('client-detail-overlay').style.display = 'flex';
+
+    // Filtramos movimientos del cliente
+    const movs = DB.movements.filter(m => m.client_id === clientId).reverse(); // Mas nuevo primero
+
+    const tbody = document.querySelector('#clientHistoryTable tbody');
+    tbody.innerHTML = movs.map(m => {
+        let detalle = m.note;
+        let vendedor = "-";
+        
+        // Si es una compra, intentamos enriquecer la info buscando la venta real
+        // La nota suele ser "Compra #123123123"
+        if(m.type === 'DEUDA' && m.note.includes('Compra #')){
+            const saleId = m.note.split('#')[1];
+            // Buscamos la venta en DB.sales (Ojo: los IDs son numeros o strings, comparamos flexible)
+            const sale = DB.sales.find(s => s.id == saleId);
+            
+            if(sale){
+                vendedor = sale.seller || 'Admin';
+                // Generamos lista de articulos
+                if(sale.items && Array.isArray(sale.items)){
+                    detalle = sale.items.map(i => `<div style="font-size:12px">• ${i.qty}x ${i.name}</div>`).join('');
+                }
+            }
+        }
+
+        // Color del monto según si suma deuda o resta
+        const color = m.type === 'DEUDA' ? 'var(--danger)' : 'var(--accent)';
+        const icon = m.type === 'DEUDA' ? '<i class="fas fa-shopping-bag"></i>' : '<i class="fas fa-money-bill"></i>';
+
+        return `
+            <tr>
+                <td>${m.date}</td>
+                <td>${icon} ${m.type}</td>
+                <td>${detalle}</td>
+                <td>${vendedor}</td>
+                <td style="color:${color}; font-weight:bold">$${m.amount.toFixed(2)}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+
 </script>
 </body>
 </html>

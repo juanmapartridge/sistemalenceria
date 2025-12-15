@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
+    // En preload.js, dentro de la lista de funciones:
+    deleteProduct: (code) => ipcRenderer.invoke('db-delete-product', code),
     getAllData: () => ipcRenderer.invoke('db-get-all'),
     saveProduct: (p) => ipcRenderer.invoke('db-save-product', p),
     bulkUpdate: (data) => ipcRenderer.invoke('db-bulk-update', data),

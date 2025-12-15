@@ -199,7 +199,14 @@ ipcMain.handle('db-add-user', async (e, u) => { db.run("INSERT INTO users (name,
 ipcMain.handle('db-factory-reset', async () => { return new Promise(r => db.serialize(() => { db.run("DELETE FROM products"); db.run("DELETE FROM sales"); db.run("DELETE FROM closures"); db.run("DELETE FROM clients"); db.run("DELETE FROM client_movements"); r({success:true}); })); });
 ipcMain.handle('db-restore-backup', async () => ({success:true}));
 ipcMain.handle('facturar-afip', async () => ({success:false, error:"Demo"}));
-
+// En main.js
+ipcMain.handle('db-delete-product', async (e, code) => {
+    return new Promise(resolve => {
+        db.run("DELETE FROM products WHERE code = ?", [code], (err) => {
+            resolve({success: !err});
+        });
+    });
+});
 let mainWindow;
 function createWindow() {
     mainWindow = new BrowserWindow({ width: 1200, height: 800, webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false } });
