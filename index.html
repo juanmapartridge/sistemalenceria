@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<title>Mandalay Kiosco - Final UI</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+  /* --- SISTEMA DE DISEÑO (PALETAS SEPARADAS) --- */
+  :root {
+    /* MODO OSCURO (Por defecto) */
+    --bg-body: #0f172a; --bg-card: #1e293b; --bg-input: #334155; --bg-hover: rgba(255, 255, 255, 0.05);
+    --text-main: #f1f5f9; --text-muted: #94a3b8; --border-color: #475569;
+    --bg-total: #020617; --bg-table-head: #0f172a;
+    --primary: #f43f5e; --accent: #10b981; --danger: #ef4444; --warning: #f59e0b;
+    --radius: 10px; --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  }
+  [data-theme="light"] {
+    --bg-body: #f1f5f9; --bg-card: #ffffff; --bg-input: #ffffff; --bg-hover: rgba(0, 0, 0, 0.05);
+    --text-main: #0f172a; --text-muted: #64748b; --border-color: #cbd5e1;
+    --bg-total: #1e293b; --bg-table-head: #f8fafc;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  * { box-sizing: border-box; outline: none; user-select: none; }
+  body {
+    margin: 0; font-family: "Segoe UI", system-ui, sans-serif;
+    background: var(--bg-body); color: var(--text-main);
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+  header {
+    background: var(--bg-card); border-bottom: 1px solid var(--border-color);
+    padding: 0 24px; height: 70px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    box-shadow: var(--shadow); z-index: 10;
+  }
+  .brand { font-size: 24px; font-weight: 800; color: var(--primary); display: flex; gap:12px; align-items:center; }
+  .nav-tabs { display: flex; gap: 10px; height: 100%; }
+  .tab-btn {
+    background: transparent; border: none; height: 100%; padding: 0 20px;
+    cursor: pointer; font-weight: 600; color: var(--text-muted); border-bottom: 4px solid transparent; 
+    transition: 0.2s; font-size: 15px;
+  }
+  .tab-btn:hover { color: var(--text-main); background: var(--bg-hover); }
+  .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .theme-toggle {
+    background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main);
+    width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: 0.2s;
+  }
+  .theme-toggle:hover { filter: brightness(1.1); }
+  .main { flex: 1; padding: 20px; overflow-y: auto; position: relative; }
+  .section { display: none; height: 100%; animation: slideIn 0.2s ease-out; }
+  .section.active { display: block; }
+  @keyframes slideIn { from {opacity: 0; transform: translateY(10px);} to {opacity: 1; transform: translateY(0);} }
+  .row { display: flex; gap: 15px; height: 100%; }
+  .col { flex: 1; display: flex; flex-direction: column; height: 100%; } 
+  .card { 
+    background: var(--bg-card); border-radius: var(--radius); padding: 20px; 
+    box-shadow: var(--shadow); height: 100%; display: flex; flex-direction: column; 
+    border: 1px solid var(--border-color); 
+  }
+  label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; margin-top: 12px; text-transform: uppercase; }
+  input, select {
+    width: 100%; padding: 12px 14px; 
+    border: 1px solid var(--border-color); border-radius: var(--radius); 
+    font-size: 16px; transition: 0.2s; 
+    background: var(--bg-input); color: var(--text-main);
+  }
+  input::placeholder { color: var(--text-muted); opacity: 0.7; }
+  input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.2); }
+  button.btn {
+    background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: var(--radius);
+    font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px;
+  }
+  button.btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  button.secondary { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+  button.secondary:hover { background: var(--bg-hover); }
+  button.success { background: var(--accent); color: #fff; }
+  .table-container { 
+    flex: 1; overflow: auto; 
+    border: 1px solid var(--border-color); border-radius: var(--radius); 
+    background: var(--bg-body); 
+  }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  th { 
+    position: sticky; top: 0; 
+    background: var(--bg-table-head); 
+    padding: 16px; text-align: left; font-size: 13px; color: var(--text-muted); 
+    border-bottom: 1px solid var(--border-color); font-weight: 700; z-index: 5; 
+  }
+  td { padding: 14px 16px; border-bottom: 1px solid var(--border-color); font-size: 15px; color: var(--text-main); }
+  tr:hover td { background: var(--bg-hover); }
+  .stock-badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 800; }
+  .stock-ok { color: var(--accent); background: rgba(16, 185, 129, 0.1); }
+  .stock-warn { color: var(--warning); background: rgba(245, 158, 11, 0.1); }
+  .stock-crit { color: var(--danger); background: rgba(239, 68, 68, 0.1); } /* Alerta visual de stock */
+  .btn-sm { 
+    width: 32px; height: 32px; border-radius: 8px; 
+    border: 1px solid var(--border-color); background: var(--bg-input); 
+    cursor: pointer; color: var(--text-main); 
+    display: inline-flex; align-items: center; justify-content: center; 
+  }
+  .btn-sm:hover { background: var(--bg-hover); }
+  .total-block { 
+    background: var(--bg-total); border: 1px solid var(--border-color);
+    padding: 24px; border-radius: 16px; margin-top: auto; 
+    display: flex; flex-direction: column; gap:10px;
+    color: white; 
+  }
+  .total-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+  .big-total { font-size: 42px; font-weight: 800; color: var(--accent); letter-spacing: -1px; text-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
+  
+  /* ESTILOS NUEVOS PARA INPUTS DE RECARGO Y TARJETA */
+  .extra-input {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: white; width: 80px; padding: 5px; text-align: right; border-radius: 5px;
+  }
+
+  .cash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .bill-row { 
+    display: flex; align-items: center; justify-content: space-between; 
+    background: var(--bg-input); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border-color); 
+  }
+  .bill-label { font-weight: 700; color: var(--text-main); font-size: 16px; }
+  .bill-input { 
+    width: 100px; padding: 10px; text-align: center; font-weight: 800; font-size: 18px;
+    background: var(--bg-card); color: var(--text-main); border: 2px solid var(--border-color); 
+  }
+  .bill-input:focus { border-color: var(--accent); }
+  .verdict-box { padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px; font-weight: bold; font-size: 18px; border: 1px solid transparent; }
+  .verdict-ok { background: rgba(16, 185, 129, 0.1); color: var(--accent); border-color: var(--accent); }
+  .verdict-bad { background: rgba(239, 68, 68, 0.1); color: var(--danger); border-color: var(--danger); }
+  .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+  .overlay-box { background: var(--bg-card); padding: 40px; border-radius: 24px; width: 360px; text-align: center; border: 1px solid var(--border-color); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); }
+  .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 30px; }
+  .pin-btn { 
+    padding: 20px; font-size: 22px; background: var(--bg-input); 
+    border: 1px solid var(--border-color); border-radius: 16px; 
+    cursor: pointer; color: var(--text-main); transition: 0.1s; 
+  }
+  .pin-btn:active { transform: scale(0.95); }
+  .pin-display { font-size: 40px; letter-spacing: 15px; margin-bottom: 20px; text-align: center; background: transparent; border: none; border-bottom: 2px solid var(--primary); color: var(--text-main); width: 100%; font-family: monospace; }
+  .toast { position: fixed; bottom: 30px; right: 30px; background: var(--bg-card); color: var(--text-main); padding: 16px 24px; border-radius: 50px; opacity: 0; transition: 0.3s; transform: translateY(20px); box-shadow: var(--shadow); font-weight: 600; pointer-events: none; z-index: 1000; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { border-color: var(--danger); color: var(--danger); }
+  #printable-area { display: none; }
+  @media print {
+    body * { visibility: hidden; }
+    #printable-area, #printable-area * { visibility: visible; }
+    #printable-area { display: block; position: absolute; left: 0; top: 0; width: 100%; background: white; color: black; }
+    .ticket-view { max-width: 300px; padding: 10px; font-family: 'Courier New', monospace; font-size: 12px; margin: 0 auto; }
+    .ticket-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .ticket-line { border-bottom: 1px dashed black; margin: 10px 0; }
+    .ticket-center { text-align: center; }
+    .labels-view { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 10px; }
+    .label-item { border: 2px solid black; padding: 10px; text-align: center; height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center; page-break-inside: avoid; }
+    .label-price { font-size: 32px; font-weight: 900; margin: 5px 0; }
+    .label-name { font-size: 14px; text-transform: uppercase; max-height: 40px; overflow: hidden; }
+    .label-code { font-size: 10px; font-family: monospace; margin-top: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div id="printable-area"></div>
+
+<div id="login-overlay" class="overlay">
+  <div class="overlay-box">
+    <div style="font-size: 50px; margin-bottom: 10px; color:var(--primary);"><i class="fas fa-fingerprint"></i></div>
+    <h3 style="color:var(--text-main)">Bienvenido</h3>
+    <input type="password" id="loginPin" class="pin-display" readonly placeholder="••••">
+    <div class="pin-pad">
+      <button class="pin-btn" onclick="typePin('1')">1</button><button class="pin-btn" onclick="typePin('2')">2</button><button class="pin-btn" onclick="typePin('3')">3</button>
+      <button class="pin-btn" onclick="typePin('4')">4</button><button class="pin-btn" onclick="typePin('5')">5</button><button class="pin-btn" onclick="typePin('6')">6</button>
+      <button class="pin-btn" onclick="typePin('7')">7</button><button class="pin-btn" onclick="typePin('8')">8</button><button class="pin-btn" onclick="typePin('9')">9</button>
+      <button class="pin-btn" style="color:var(--danger)" onclick="clearPin()"><i class="fas fa-times"></i></button>
+      <button class="pin-btn" onclick="typePin('0')">0</button>
+      <button class="pin-btn" style="background:var(--primary); border:none; color:white" onclick="doLogin()"><i class="fas fa-arrow-right"></i></button>
+    </div>
+    <div style="margin-top:10px; font-size:12px; color:var(--text-muted)">Usa el teclado numérico</div>
+  </div>
+</div>
+
+<div id="manual-overlay" class="overlay" style="display:none">
+  <div class="overlay-box">
+    <h3 style="color:var(--text-main)"><i class="fas fa-weight-hanging"></i> Carga Manual</h3>
+    <label style="text-align:left;">Descripción</label>
+    <input id="man_desc" class="modal-input" placeholder="Ej: Varios" onkeydown="if(event.key==='Enter') document.getElementById('man_price').focus()">
+    <label style="text-align:left;">Precio Total ($)</label>
+    <input id="man_price" type="number" step="0.01" class="modal-input" placeholder="0.00" onkeydown="if(event.key==='Enter') confirmManual()">
+    <div style="display:flex; gap:10px; margin-top:20px">
+        <button class="btn secondary" style="flex:1" onclick="closeManual()">Cancelar</button>
+        <button class="btn" style="flex:1" onclick="confirmManual()">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="brand"><i class="fas fa-layer-group"></i> JN SYSTEM</div>
+  <nav class="nav-tabs">
+    <button class="tab-btn active" onclick="nav('pos')"><i class="fas fa-cash-register"></i> Ventas</button>
+    <button class="tab-btn" onclick="nav('stock')"><i class="fas fa-boxes"></i> Stock</button>
+    <button class="tab-btn" onclick="nav('history')"><i class="fas fa-chart-pie"></i> Arqueo</button>
+    <button class="tab-btn" onclick="nav('users')"><i class="fas fa-cog"></i> Config</button>
+  </nav>
+  <div style="display:flex; align-items:center; gap:15px;">
+    <button class="theme-toggle" onclick="toggleTheme()" title="Cambiar Tema"><i class="fas fa-adjust"></i></button>
+    <span style="font-size:14px; font-weight:700; color:var(--text-main);" id="userBadge">...</span>
+    <button class="btn secondary" style="padding:10px; border-radius:50%; width:40px; height:40px;" onclick="logout()"><i class="fas fa-power-off"></i></button>
+  </div>
+</header>
+
+<div class="main">
+
+  <div id="tab-pos" class="section active">
+    <div class="row" style="height:100%">
+      <div class="col" style="flex: 2;">
+        <div class="card" style="padding:0; overflow:hidden;">
+          <div style="padding:20px; background:var(--bg-card); border-bottom:1px solid var(--border-color);">
+             <div class="row" style="align-items:flex-end">
+               <div style="flex:1"><label>Escanear</label><input id="scanInput" placeholder="Código..." autofocus></div>
+               <div style="width:100px"><label>Cant.</label><input id="scanQty" type="number" value="1" min="1" style="text-align:center"></div>
+               <button class="btn" style="height:52px" onclick="manualScan()"><i class="fas fa-plus"></i></button>
+               <button class="btn secondary" style="height:52px;" onclick="openManualModal()"><i class="fas fa-keyboard"></i> Manual</button>
+             </div>
+          </div>
+          <div class="table-container">
+            <table id="posTable"><thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead><tbody></tbody></table>
+          </div>
+          <div style="padding:20px; background:var(--bg-body); border-top:1px solid var(--border-color)">
+             <div style="margin-bottom:15px; padding:12px; border:1px solid var(--border-color); border-radius:12px; background:var(--bg-card); display:flex; align-items:center; justify-content:space-between;">
+                <label style="margin:0; cursor:pointer; display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" id="checkFiscal" onchange="toggleFiscal()" style="width:20px; height:20px;"> 
+                    <span style="font-weight:700; color:var(--text-main)">Facturar ARCA</span>
+                </label>
+                <div id="fiscalInputs" style="display:none; gap:10px;">
+                    <input id="cuitCliente" type="number" placeholder="CUIT (11 dig)" style="width:180px">
+                    <select id="tipoFactura" style="width:140px"><option value="B">B - Final</option><option value="A">A - Inscripto</option></select>
+                </div>
+             </div>
+
+             <div class="total-block">
+                <div class="row" style="width:100%; align-items: flex-end;">
+                   <div style="flex:1">
+                      <div style="font-size:12px; opacity:0.7; margin-bottom:5px; color:white">MEDIO PAGO</div>
+                      <select id="paymentMethod" onchange="toggleCardInput()" style="background:#334155; color:white; border:none; font-size:16px; font-weight:600">
+                          <option value="Efectivo">Efectivo</option>
+                          <option value="Transferencia">Transferencia</option>
+                          <option value="Debito">Débito</option>
+                          <option value="Credito">Crédito</option>
+                      </select>
+                      <input id="cardName" placeholder="Nombre Tarjeta (Ej: Visa)" style="display:none; margin-top:5px; background:rgba(255,255,255,0.1); color:white; border:none;">
+                   </div>
+                   
+                   <div style="flex:1; text-align:right">
+                       <div class="total-row" style="margin-bottom:5px; justify-content: flex-end; gap: 10px;">
+                           <span style="font-size:13px; opacity:0.7">Subtotal:</span>
+                           <span id="lblSubtotal" style="font-weight:bold">$0.00</span>
+                       </div>
+                       
+                       <div class="total-row" style="margin-bottom:5px; justify-content: flex-end; gap: 10px;">
+                           <span style="font-size:13px">Recargo (%):</span>
+                           <input type="number" id="surchargePct" class="extra-input" value="0" oninput="calcTotalFinal()">
+                       </div>
+
+                       <div class="total-row" style="margin-bottom:10px; justify-content: flex-end; gap: 10px;">
+                           <span style="font-size:13px">Descuento ($):</span>
+                           <input type="number" id="discountAmt" class="extra-input" value="0" oninput="calcTotalFinal()">
+                       </div>
+
+                       <div class="big-total" id="displayTotal">$0.00</div>
+                   </div>
+                </div>
+             </div>
+             
+             <button class="btn" style="width:100%; margin-top:15px; font-size:18px; padding:18px;" onclick="finishSale()">CONFIRMAR VENTA (F10)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-stock" class="section">
+    <div class="row" style="height:100%">
+      <div class="col" style="flex:0 0 320px;">
+        <div class="card" style="overflow-y:auto">
+          <h3 style="margin-top:0"><i class="fas fa-edit"></i> Gestión</h3>
+          <label>Código</label><input id="st_code" placeholder="Ej: 779... o 105">
+          <label>Nombre</label><input id="st_name">
+          <label>Proveedor</label><input id="st_prov" list="provList"><datalist id="provList"></datalist>
+          
+          <div class="row">
+              <div class="col"><label>Costo</label><input id="st_cost" type="number" oninput="calcFromCost()"></div>
+              <div class="col"><label>Margen %</label><input id="st_margin" type="number" oninput="calcFromMargin()"></div>
+          </div>
+          
+          <div class="row">
+              <div class="col"><label>Venta</label><input id="st_price" type="number" oninput="calcFromPrice()" style="font-weight:bold; color:var(--accent)"></div>
+              <div class="col"><label>Stock</label><input id="st_qty" type="number" onkeydown="if(event.key==='Enter') saveProduct()"></div>
+          </div>
+          
+          <div style="display:flex; gap:10px; margin-top:20px;"><button class="btn" style="flex:1" onclick="saveProduct()">Guardar</button><button class="btn secondary" style="flex:1" onclick="clearSt()">Nuevo</button></div>
+          
+          <div style="margin-top:30px; padding:15px; background:rgba(245, 158, 11, 0.1); border-radius:12px; border:1px solid var(--warning);">
+             <h4 style="margin:0 0 10px 0; color:var(--warning)">Aumento Masivo</h4>
+             <select id="bulk_prov" style="margin-bottom:10px"><option value="">Proveedor...</option></select>
+             <div style="display:flex; gap:5px"><input id="bulk_pct" type="number" placeholder="%"><button class="btn" style="background:var(--warning); color:black" onclick="bulkUpdate()">Aplicar</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
+              <input id="searchSt" placeholder="Buscar..." style="max-width:300px">
+              <div style="display:flex; gap:10px">
+                  <button class="btn secondary" onclick="printSelectedLabels()"><i class="fas fa-tags"></i> Etiquetas</button>
+                  <button class="btn success" onclick="exportStockCSV()"><i class="fas fa-file-excel"></i> Excel</button>
+              </div>
+          </div>
+          <div class="table-container">
+            <table id="stockTable">
+                <thead><tr><th style="width:30px"><input type="checkbox" onchange="toggleAllLabels(this)"></th><th>Código</th><th>Nombre</th><th>Prov.</th><th>Precio</th><th>Stock</th><th></th></tr></thead>
+                <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-history" class="section">
+    <div class="row" style="height:100%">
+      <div class="col">
+         <div class="card">
+            <h3><i class="fas fa-chart-line"></i> Resumen Sistema</h3>
+            <div style="background:var(--bg-input); padding:20px; border-radius:16px; margin-bottom:20px; border:1px solid var(--border-color);">
+               <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><span>Efectivo Sistema:</span><strong id="sys_cash" style="color:var(--text-main)">$0.00</strong></div>
+               <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><span>Digital Sistema:</span><strong id="sys_dig" style="color:var(--text-main)">$0.00</strong></div>
+               <div style="border-top:1px solid var(--border-color); padding-top:12px; display:flex; justify-content:space-between; font-size:20px;"><span>Total Vendido:</span><strong id="sys_total" style="color:var(--accent)">$0.00</strong></div>
+            </div>
+            <button class="btn success" style="width:100%; margin-bottom:20px;" onclick="downloadExcel()"><i class="fas fa-file-excel"></i> Exportar Reporte Gerencial</button>
+            <h4>Últimas 10 Ventas</h4>
+            <div class="table-container"><table id="historyTable"><thead><tr><th>Hora</th><th>Total</th><th>Pago</th></tr></thead><tbody></tbody></table></div>
+         </div>
+      </div>
+      <div class="col">
+         <div class="card" style="border-left:4px solid var(--primary);">
+            <h3><i class="fas fa-money-bill-wave"></i> Conteo Físico</h3>
+            <div style="overflow-y:auto; padding-right:5px; flex:1">
+              <div class="cash-grid">
+                 <div class="bill-row"><span class="bill-label">$ 20.000</span><input type="number" class="bill-input" data-val="20000" oninput="calcCash()"></div>
+                 <div class="bill-row"><span class="bill-label">$ 10.000</span><input type="number" class="bill-input" data-val="10000" oninput="calcCash()"></div>
+                 <div class="bill-row"><span class="bill-label">$ 2.000</span><input type="number" class="bill-input" data-val="2000" oninput="calcCash()"></div>
+                 <div class="bill-row"><span class="bill-label">$ 1.000</span><input type="number" class="bill-input" data-val="1000" oninput="calcCash()"></div>
+                 <div class="bill-row"><span class="bill-label">$ 500</span><input type="number" class="bill-input" data-val="500" oninput="calcCash()"></div>
+                 <div class="bill-row"><span class="bill-label">$ 200</span><input type="number" class="bill-input" data-val="200" oninput="calcCash()"></div>
+                 <div class="bill-row"><span class="bill-label">$ 100</span><input type="number" class="bill-input" data-val="100" oninput="calcCash()"></div>
+                 <div class="bill-row"><span class="bill-label">Monedas</span><input type="number" class="bill-input" data-val="1" id="coinsInput" oninput="calcCash()"></div>
+              </div>
+            </div>
+            <div style="margin-top:20px; text-align:right; font-size:18px; color:var(--text-muted)">En Caja: <strong id="counted_total" style="font-size:28px; color:var(--text-main)">$0.00</strong></div>
+            <div id="verdictBox" class="verdict-box" style="display:none"><div>Diferencia: <span id="diffAmount"></span></div><div id="diffText" style="font-size:14px; font-weight:normal"></div></div>
+            <button class="btn" style="width:100%; margin-top:20px;" onclick="saveClosure()"><i class="fas fa-save"></i> CERRAR Y GUARDAR</button>
+         </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-users" class="section">
+     <div class="row" style="height:100%">
+        <div class="col">
+           <div class="card">
+              <h3>Usuarios</h3>
+              <div class="row" style="align-items:flex-end"><div class="col"><label>Nombre</label><input id="u_name"></div><div class="col"><label>PIN</label><input id="u_pin" type="number"></div><button class="btn" onclick="addUser()">Agregar</button></div>
+              <div style="margin-top:20px;"><table id="usersTable"><thead><tr><th>Nombre</th><th>PIN</th><th></th></tr></thead><tbody></tbody></table></div>
+           </div>
+        </div>
+        <div class="col">
+           <div class="card" style="background:var(--bg-input); border:1px solid var(--border-color)">
+              <h3><i class="fas fa-database"></i> Respaldo de Datos</h3>
+              <button class="btn" style="background:#020617; margin-bottom:15px; padding:20px;" onclick="backupSystem()"><i class="fas fa-download"></i> DESCARGAR BACKUP JSON</button>
+              <div style="border-top:1px solid var(--border-color); padding-top:15px;">
+                 <label>Restaurar (Sobrescribe todo)</label>
+                 <div class="row"><input type="file" id="restoreFile" accept=".json"><button class="btn secondary" onclick="restoreBackup()">Restaurar</button></div>
+              </div>
+              <div style="margin-top:auto; text-align:center;"><button class="btn" style="background:var(--danger); width:100%" onclick="factoryReset()"><i class="fas fa-trash"></i> FORMATO FÁBRICA</button></div>
+           </div>
+        </div>
+     </div>
+  </div>
+
+</div>
+
+<div id="toast" class="toast"><span>Notificación</span></div>
+
+<script>
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playBeep() {
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.type='square'; osc.frequency.value=800; gain.gain.value=0.1;
+  osc.start(); setTimeout(()=>osc.stop(), 100);
+}
+
+// --- TEMA ---
+function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+}
+if(localStorage.getItem('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
+
+let DB = { stock: [], users: [], sales: [], closures: [] };
+let currentUser = null;
+let currentCart = [];
+
+window.addEventListener('DOMContentLoaded', async () => {
+   await reloadData();
+   
+   document.getElementById('scanInput').addEventListener('keydown', e => { if(e.key === 'Enter') manualScan(); });
+   
+   // EVENTO TECLADO GLOBAL (NUEVO)
+   document.addEventListener('keydown', e => { 
+       // Login con Teclado
+       const overlay = document.getElementById('login-overlay');
+       if(overlay.style.display !== 'none'){
+           if(e.key >= '0' && e.key <= '9') typePin(e.key);
+           if(e.key === 'Backspace') clearPin();
+           if(e.key === 'Enter') doLogin();
+           return; 
+       }
+       // Atajo Venta
+       if(e.key === 'F10') finishSale(); 
+   });
+});
+
+async function reloadData(){
+    try { const data = await window.electronAPI.getAllData(); DB = data; renderStock(); renderUsers(); updateArqueo(); updateProvList(); } catch(e) { console.error(e); }
+}
+
+const pinDisplay=document.getElementById('loginPin');
+function typePin(n){ pinDisplay.value += n; }
+function clearPin(){ pinDisplay.value = ''; }
+function doLogin(){
+   const u = DB.users.find(x => x.pin === pinDisplay.value);
+   if(u){ currentUser = u; document.getElementById('userBadge').innerText = u.name; document.getElementById('login-overlay').style.display = 'none'; pinDisplay.value=''; document.getElementById('scanInput').focus(); } 
+   else { showToast("PIN Incorrecto",true); pinDisplay.value=''; }
+}
+function logout(){ currentUser=null; document.getElementById('login-overlay').style.display='flex'; }
+function nav(t){
+   document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+   document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+   document.getElementById('tab-'+t).classList.add('active');
+   if(t==='pos') setTimeout(()=>document.getElementById('scanInput').focus(),100);
+   if(t==='history') updateArqueo();
+}
+
+// --- POS LOGIC (Actualizado: Tarjeta, Stock 0, Recargo) ---
+function toggleCardInput(){
+    const m = document.getElementById('paymentMethod').value;
+    const cardInput = document.getElementById('cardName');
+    if(m === 'Debito' || m === 'Credito') cardInput.style.display = 'block';
+    else cardInput.style.display = 'none';
+}
+
+function manualScan(){
+   const input = document.getElementById('scanInput');
+   const code = input.value.trim();
+   if(!code) return;
+   if(code.length === 13 && code.startsWith('20')){
+      const plu = parseInt(code.substring(2,7)).toString();
+      const price = parseFloat(code.substring(7,12)) / 100;
+      const prod = DB.stock.find(s => s.code === plu);
+      addItemToCart(prod ? prod.name : `Balanza PLU ${plu}`, 1, price, prod ? prod.code : 'BAL-'+plu, true);
+      successScan(input); return;
+   }
+   const prod = DB.stock.find(s => s.code === code);
+   if(prod){
+      // CONTROL DE STOCK 0 (Nuevo)
+      if(prod.qty <= 0) { showToast("¡SIN STOCK!", true); return; }
+
+      const qty = parseInt(document.getElementById('scanQty').value)||1;
+      const inCart = currentCart.find(i=>i.code===code && !i.isManual)?.qty || 0;
+      
+      if(inCart + qty > prod.qty) { showToast(`¡Stock Insuficiente! (${prod.qty})`, true); return; }
+      
+      addItemToCart(prod.name, qty, prod.price, prod.code, false);
+      successScan(input);
+      document.getElementById('scanQty').value=1;
+   } else { showToast("No encontrado", true); input.select(); }
+}
+
+function successScan(input){ input.value=''; playBeep(); input.focus(); }
+function openManualModal(){ document.getElementById('manual-overlay').style.display = 'flex'; document.getElementById('man_desc').value=''; document.getElementById('man_price').value=''; setTimeout(()=>document.getElementById('man_desc').focus(),100); }
+function closeManual(){ document.getElementById('manual-overlay').style.display='none'; document.getElementById('scanInput').focus(); }
+function confirmManual(){
+    const d=document.getElementById('man_desc').value||"Varios";
+    const p=parseFloat(document.getElementById('man_price').value.replace(',','.'));
+    if(!p) return;
+    addItemToCart(d+" (Manual)", 1, p, "MAN", true); closeManual();
+}
+function addItemToCart(name, qty, price, code, isManual){
+   if(isManual){ currentCart.push({ name, qty:1, price, subtotal:price, code, isManual:true }); }
+   else {
+      let item = currentCart.find(i => i.code === code && !i.isManual);
+      if(item){ item.qty += qty; item.subtotal = item.qty * item.price; }
+      else { currentCart.push({ name, qty, price, subtotal: price*qty, code, isManual:false }); }
+   }
+   renderCart();
+}
+function changeQty(idx, delta){
+   const item = currentCart[idx];
+   if(item.isManual){ if(confirm("Eliminar?")) delItem(idx); return; }
+   if(delta>0){ const p = DB.stock.find(s=>s.code===item.code); if(p && item.qty+delta > p.qty){ showToast(`Tope Stock (${p.qty})`, true); return; } }
+   item.qty += delta;
+   if(item.qty <= 0) delItem(idx); else { item.subtotal = item.qty * item.price; renderCart(); }
+}
+
+// CÁLCULO DE TOTALES (Nuevo)
+function calcTotalFinal(){
+    let subtotal = currentCart.reduce((a,b)=>a+b.subtotal, 0);
+    const surPct = parseFloat(document.getElementById('surchargePct').value)||0;
+    const descAmt = parseFloat(document.getElementById('discountAmt').value)||0;
+    
+    const surcharge = subtotal * (surPct/100);
+    const total = subtotal + surcharge - descAmt;
+    
+    document.getElementById('lblSubtotal').innerText = `$${subtotal.toFixed(2)}`;
+    document.getElementById('displayTotal').innerText = '$' + total.toFixed(2);
+    return { subtotal, surcharge, descAmt, total };
+}
+
+function renderCart(){
+   const tbody = document.querySelector('#posTable tbody'); tbody.innerHTML='';
+   currentCart.forEach((i, idx) => {
+      tbody.innerHTML += `<tr><td>${i.name}</td><td>${i.isManual?'-':`<div style="display:flex;gap:5px"><button class="btn-sm" onclick="changeQty(${idx},-1)">-</button>${i.qty}<button class="btn-sm" onclick="changeQty(${idx},1)">+</button></div>`}</td><td>$${i.price.toFixed(2)}</td><td>$${i.subtotal.toFixed(2)}</td><td><button class="btn-sm" style="color:var(--danger); border-color:var(--danger)" onclick="delItem(${idx})"><i class="fas fa-trash"></i></button></td></tr>`;
+   });
+   calcTotalFinal();
+}
+function delItem(i){ currentCart.splice(i,1); renderCart(); }
+
+async function finishSale(){
+   if(currentCart.length===0) return showToast("Carrito vacío", true);
+   
+   // Datos Extendidos
+   const nums = calcTotalFinal();
+   const payMethod = document.getElementById('paymentMethod').value;
+   const cardName = document.getElementById('cardName').value;
+
+   const fis = document.getElementById('checkFiscal').checked;
+   const cuit = document.getElementById('cuitCliente').value;
+   if(fis && (!cuit || cuit.length!==11)) return showToast("CUIT inválido", true);
+   
+   const sale = { 
+       id: Date.now(), 
+       date: new Date().toLocaleString(), 
+       seller: currentUser.name, 
+       items: currentCart, 
+       total: nums.total, 
+       payment: payMethod,
+       card_name: (payMethod === 'Debito' || payMethod === 'Credito') ? cardName : '',
+       surcharge: nums.surcharge,
+       discount: nums.descAmt,
+       cuit: fis?cuit:null, 
+       fiscal: "No Fiscal" 
+   };
+
+   if(fis){
+       showToast("Conectando ARCA...", false);
+       try {
+           const r = await window.electronAPI.facturar(sale);
+           if(r.success) { sale.fiscal=`CAE:${r.cae}`; showToast("Factura OK"); }
+           else { if(!confirm("Fallo AFIP. ¿Guardar local?")) return; sale.fiscal="Error AFIP"; }
+       } catch(e){ alert("Error backend"); return; }
+   }
+   await window.electronAPI.saveSale(sale);
+   printTicket(sale);
+   currentCart=[]; 
+   document.getElementById('surchargePct').value=0;
+   document.getElementById('discountAmt').value=0;
+   renderCart(); 
+   document.getElementById('checkFiscal').checked=false; toggleFiscal(); await reloadData();
+}
+
+function printTicket(s){
+   const area = document.getElementById('printable-area');
+   area.innerHTML = `<div class="ticket-view"><div class="ticket-center"><h2 style="margin:0">Kiosco Mandalay</h2><p>${s.date}</p><p>Ticket #${s.id.toString().slice(-6)}</p><p>Atendió: ${s.seller}</p></div><div class="ticket-line"></div>${s.items.map(i=>`<div class="ticket-row"><span>${i.isManual?'1':i.qty} x ${i.name}</span><span>$${i.subtotal.toFixed(2)}</span></div>`).join('')}<div class="ticket-line"></div><div class="ticket-row"><strong>TOTAL</strong><strong>$${s.total.toFixed(2)}</strong></div><div class="ticket-row"><span>Pago</span><span>${s.payment}</span></div><div class="ticket-disclaimer">NO VÁLIDO COMO FACTURA<br>Control Interno</div></div>`;
+   window.print();
+}
+
+function toggleAllLabels(chk){ document.querySelectorAll('.lbl-chk').forEach(c => c.checked = chk.checked); }
+function printSelectedLabels(){
+    const selected = [];
+    document.querySelectorAll('.lbl-chk:checked').forEach(c => { const code = c.dataset.code; const prod = DB.stock.find(s => s.code === code); if(prod) selected.push(prod); });
+    if(selected.length === 0) return showToast("Seleccione productos", true);
+    const area = document.getElementById('printable-area');
+    area.innerHTML = `<div class="labels-view">${selected.map(p => `<div class="label-item"><div class="label-name">${p.name.substring(0,40)}</div><div class="label-price">$${p.price.toFixed(2)}</div><div class="label-code">${p.code}</div></div>`).join('')}</div>`;
+    window.print();
+}
+
+// --- STOCK LOGIC (Mejorado: Calculo Bidireccional y No Obligatorio) ---
+function calcFromCost(){
+    const cost = parseFloat(document.getElementById('st_cost').value)||0;
+    const margin = parseFloat(document.getElementById('st_margin').value)||0;
+    if(margin) document.getElementById('st_price').value = (cost * (1 + margin/100)).toFixed(2);
+}
+function calcFromMargin(){
+    const cost = parseFloat(document.getElementById('st_cost').value)||0;
+    const margin = parseFloat(document.getElementById('st_margin').value)||0;
+    document.getElementById('st_price').value = (cost * (1 + margin/100)).toFixed(2);
+}
+function calcFromPrice(){
+    const cost = parseFloat(document.getElementById('st_cost').value)||0;
+    const price = parseFloat(document.getElementById('st_price').value)||0;
+    if(cost > 0) {
+        const margin = ((price - cost) / cost) * 100;
+        document.getElementById('st_margin').value = margin.toFixed(2);
+    }
+}
+
+async function saveProduct(){
+   const p = { 
+       code: document.getElementById('st_code').value.trim(), 
+       name: document.getElementById('st_name').value.trim() || "Sin Nombre", 
+       supplier: document.getElementById('st_prov').value, 
+       cost: parseFloat(document.getElementById('st_cost').value)||0, 
+       margin: parseFloat(document.getElementById('st_margin').value)||0, 
+       price: parseFloat(document.getElementById('st_price').value)||0, 
+       qty: parseInt(document.getElementById('st_qty').value)||0 
+   };
+   // Validación relajada: Solo código
+   if(!p.code) return showToast("Código es obligatorio", true);
+   
+   await window.electronAPI.saveProduct(p); 
+   clearSt(); showToast("Guardado"); document.getElementById('st_code').focus(); await reloadData();
+}
+function clearSt(){ ['st_code','st_name','st_prov','st_cost','st_margin','st_qty','st_price'].forEach(i=>document.getElementById(i).value=''); }
+
+function renderStock(){
+   const q = document.getElementById('searchSt').value.toLowerCase();
+   document.querySelector('#stockTable tbody').innerHTML = DB.stock.filter(s=>s.name.toLowerCase().includes(q)||s.code.includes(q)).map(s=>{
+       // ALERTA STOCK VISUAL
+       let cls = 'stock-ok';
+       if(s.qty <= 0) cls = 'stock-crit';
+       else if(s.qty <= 2) cls = 'stock-warn';
+       
+       return `<tr><td><input type="checkbox" class="lbl-chk" data-code="${s.code}"></td><td>${s.code}</td><td>${s.name}</td><td>${s.supplier||'-'}</td><td>$${s.price.toFixed(2)}</td><td><span class="stock-badge ${cls}">${s.qty}</span></td><td><button class="btn secondary" onclick="editProd('${s.code}')"><i class="fas fa-edit"></i></button></td></tr>`;
+   }).join('');
+}
+document.getElementById('searchSt').addEventListener('input', renderStock);
+function editProd(c){ const s = DB.stock.find(x=>x.code===c); if(!s)return; document.getElementById('st_code').value=s.code; document.getElementById('st_name').value=s.name; document.getElementById('st_prov').value=s.supplier; document.getElementById('st_cost').value=s.cost; document.getElementById('st_margin').value=s.margin; document.getElementById('st_qty').value=s.qty; document.getElementById('st_price').value=s.price; }
+async function bulkUpdate(){ const p = document.getElementById('bulk_prov').value, pct=parseFloat(document.getElementById('bulk_pct').value); if(p && pct && confirm(`¿Aumentar ${pct}% a ${p}?`)){ await window.electronAPI.bulkUpdate({provider:p, pct}); await reloadData(); showToast("Actualizado"); } }
+function updateProvList(){ const p = [...new Set(DB.stock.map(x=>x.supplier).filter(Boolean))]; document.getElementById('provList').innerHTML=p.map(x=>`<option value="${x}">`).join(''); document.getElementById('bulk_prov').innerHTML='<option value="">Proveedor...</option>'+p.map(x=>`<option value="${x}">${x}</option>`).join(''); }
+
+async function exportStockCSV(){
+    if(DB.stock.length === 0) return showToast("No hay stock", true);
+    let csv = "CODIGO;PRODUCTO;PROVEEDOR;COSTO;MARGEN;PRECIO;STOCK\n";
+    DB.stock.forEach(s => { csv += `${s.code};${s.name};${s.supplier||''};${s.cost};${s.margin};${s.price};${s.qty}\n`; });
+    const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); link.download = "stock.csv"; link.click();
+}
+
+function backupSystem(){
+    const link = document.createElement("a");
+    const blob = new Blob([JSON.stringify(DB)], {type: "application/json"});
+    link.href = URL.createObjectURL(blob);
+    link.download = `backup_full_${new Date().toISOString().slice(0,10)}.json`;
+    link.click();
+}
+function restoreBackup() {
+    const input = document.getElementById('restoreFile');
+    if (input.files.length === 0) return showToast("Seleccione un archivo JSON primero", true);
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const jsonContent = e.target.result;
+            const data = JSON.parse(jsonContent);
+            if (!data.stock || !data.users) { alert("Error: Backup no válido."); return; }
+            if (!confirm("ADVERTENCIA: Se borrarán los datos actuales.\n\n¿Continuar?")) return;
+            showToast("Restaurando base de datos...", false);
+            const res = await window.electronAPI.restoreBackup(data);
+            if (res.success) { alert("¡Restauración Exitosa!"); location.reload(); } 
+            else { alert("Ocurrió un error: " + (res.error || "Desconocido")); }
+        } catch (err) { console.error(err); alert("Error: Archivo corrupto."); }
+    };
+    reader.readAsText(file);
+}
+async function factoryReset(){ 
+    if(confirm("¡ATENCIÓN! \n\nEsto borrará TODO: Stock, Ventas, Caja y Usuarios.\n¿Estás 100% seguro?")){ 
+        localStorage.clear(); 
+        const res = await window.electronAPI.factoryReset();
+        if(res.success){ alert("Sistema formateado."); location.reload(); } else { alert("Error al borrar."); }
+    } 
+}
+function updateArqueo(){
+    let cash=0, dig=0;
+    // Solo ventas de hoy para el arqueo visual (opcional)
+    const todayStr = new Date().toLocaleString().split(',')[0];
+    DB.sales.forEach(s=>{ 
+        if(s.date.startsWith(todayStr)) {
+             if(s.payment==='Efectivo') cash+=s.total; else dig+=s.total; 
+        }
+    });
+    document.getElementById('sys_cash').innerText=`$${cash.toFixed(2)}`;
+    document.getElementById('sys_dig').innerText=`$${dig.toFixed(2)}`;
+    document.getElementById('sys_total').innerText=`$${(cash+dig).toFixed(2)}`;
+    document.querySelector('#historyTable tbody').innerHTML = DB.sales.slice().reverse().slice(0,10).map(s=>`<tr><td>${s.date.split(',')[1]}</td><td>$${s.total.toFixed(2)}</td><td>${s.payment}</td></tr>`).join('');
+    calcCash();
+}
+function calcCash(){
+    let tot=0; document.querySelectorAll('.bill-input').forEach(i=>{ tot += (parseFloat(i.dataset.val)*(parseFloat(i.value)||0)); });
+    document.getElementById('counted_total').innerText=`$${tot.toFixed(2)}`;
+    const dif = tot - parseFloat(document.getElementById('sys_cash').innerText.replace('$',''));
+    const vb=document.getElementById('verdictBox');
+    document.getElementById('diffAmount').innerText=`$${Math.abs(dif).toFixed(2)}`;
+    vb.style.display='block';
+    if(Math.abs(dif)<10) { vb.className='verdict-box verdict-ok'; document.getElementById('diffText').innerText="CAJA PERFECTA"; }
+    else if(dif>0) { vb.className='verdict-box verdict-ok'; document.getElementById('diffText').innerText="SOBRANTE"; }
+    else { vb.className='verdict-box verdict-bad'; document.getElementById('diffText').innerText="FALTANTE"; }
+}
+async function saveClosure(){
+    if(!confirm("¿Cerrar Caja y Generar Excel?")) return;
+    let det={}; let real=0;
+    document.querySelectorAll('.bill-input').forEach(i=>{ if(i.value>0) { det[`$${i.dataset.val}`]=i.value; real+=(i.dataset.val*i.value); } });
+    const sys = parseFloat(document.getElementById('sys_cash').innerText.replace('$',''));
+    const diff = real - sys;
+    
+    // Guardar Cierre
+    const clos = { date: new Date().toLocaleString(), user: currentUser.name, sysCash: sys, realCash: real, diff: diff, status: diff>=0?"OK":"FALTA", details: det };
+    await window.electronAPI.saveClosure(clos);
+    
+    // Exportar Excel Profesional
+    // Filtrar ventas de hoy
+    const todayStr = new Date().toLocaleString().split(',')[0];
+    const ventasHoy = DB.sales.filter(s => s.date.startsWith(todayStr));
+    const r = await window.electronAPI.exportarExcel({ventas: ventasHoy, cierres: DB.closures});
+
+    if(r.success) showToast("Cierre OK - Excel Guardado"); 
+    else showToast("Cierre OK - Error Excel: " + r.error, true);
+
+    await reloadData(); document.querySelectorAll('.bill-input').forEach(i=>i.value=''); calcCash();
+}
+async function downloadExcel(){
+    if(DB.sales.length===0 && DB.closures.length===0) return showToast("Sin datos", true);
+    showToast("Generando Excel...", false);
+    const r = await window.electronAPI.exportarExcel({ventas: DB.sales, cierres: DB.closures});
+    if(r.success) showToast("Guardado OK"); else showToast("Error/Cancelado", true);
+}
+
+async function addUser(){ const n=document.getElementById('u_name').value, p=document.getElementById('u_pin').value; if(n&&p) { await window.electronAPI.addUser({name:n, pin:p}); await reloadData(); document.getElementById('u_name').value=''; } }
+function renderUsers(){ document.querySelector('#usersTable tbody').innerHTML=DB.users.map(u=>`<tr><td>${u.name}</td><td>****</td><td></td></tr>`).join(''); }
+function toggleFiscal(){ document.getElementById('fiscalInputs').style.display=document.getElementById('checkFiscal').checked?'flex':'none'; }
+function showToast(m,e=false){ const t=document.getElementById('toast'); t.innerHTML= e ? `<i class="fas fa-exclamation-triangle"></i> ${m}` : `<i class="fas fa-check-circle"></i> ${m}`; t.className=e?'toast show error':'toast show'; setTimeout(()=>t.className='toast',3000); }
+</script>
+</body>
+</html>
