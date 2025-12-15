@@ -4,34 +4,38 @@ const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 const xlsx = require('xlsx'); 
 
-// --- BASE DE DATOS SQLITE ---
 const dbPath = path.join(__dirname, 'mandalay.db');
 const db = new sqlite3.Database(dbPath);
 
-// INICIALIZACIÓN DE TABLAS
+// --- INICIALIZACIÓN DE TABLAS ---
 db.serialize(() => {
-    // 1. Tablas Esenciales
-    db.run(`CREATE TABLE IF NOT EXISTS products (code TEXT PRIMARY KEY, name TEXT, supplier TEXT, size TEXT, color TEXT, cost REAL, margin REAL, price REAL, qty INTEGER)`);
+    // 1. Productos (Con todas las columnas nuevas)
+    db.run(`CREATE TABLE IF NOT EXISTS products (
+        code TEXT PRIMARY KEY, 
+        name TEXT, 
+        supplier TEXT, 
+        brand TEXT,       -- Marca
+        category TEXT,    -- Categoria
+        subcategory TEXT, -- Subcategoria
+        size TEXT, 
+        color TEXT, 
+        cost REAL, 
+        margin REAL, 
+        price REAL, 
+        qty INTEGER
+    )`);
+
     db.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, pin TEXT)`);
     db.run(`CREATE TABLE IF NOT EXISTS closures (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, user TEXT, sys_cash REAL, real_cash REAL, diff REAL, status TEXT, details_json TEXT)`);
     db.run(`CREATE TABLE IF NOT EXISTS sales (id INTEGER PRIMARY KEY, date TEXT, seller TEXT, total REAL, payment TEXT, card_name TEXT, surcharge REAL, discount REAL, client_id INTEGER, items_json TEXT)`);
     db.run(`CREATE TABLE IF NOT EXISTS clients (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT, address TEXT, balance REAL DEFAULT 0)`);
     db.run(`CREATE TABLE IF NOT EXISTS client_movements (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER, date TEXT, type TEXT, amount REAL, note TEXT)`);
     
-    // --- RECUPERACIÓN DE ADMIN (SOLUCIÓN DEFINITIVA) ---
-    // Verificamos si existe el usuario "Admin". 
-    // Si existe, le FORZAMOS el PIN 1111. Si no existe, lo creamos.
+    // --- RECUPERACIÓN ADMIN ---
     db.get("SELECT * FROM users WHERE name = 'Admin'", (err, row) => {
-        if (err) {
-            console.error("Error verificando admin:", err);
-            return;
-        }
-        
-        if (row) {
-            console.log("Usuario Admin encontrado. Actualizando PIN a 1111...");
+        if(row) {
             db.run("UPDATE users SET pin = '1111' WHERE name = 'Admin'");
         } else {
-            console.log("Creando usuario Admin nuevo con PIN 1111...");
             db.run("INSERT INTO users (name, pin) VALUES ('Admin', '1111')");
         }
     });
@@ -39,10 +43,9 @@ db.serialize(() => {
 
 // --- API ---
 
-// 1. OBTENER TODO (Con espera de seguridad)
+// 1. OBTENER TODO
 ipcMain.handle('db-get-all', async () => {
     return new Promise((resolve) => {
-        // Esperamos 500ms para asegurar que la consulta del Admin de arriba haya terminado
         setTimeout(() => {
             const data = { stock: [], users: [], sales: [], closures: [], clients: [], movements: [] };
             db.serialize(() => {
@@ -51,7 +54,6 @@ ipcMain.handle('db-get-all', async () => {
                 db.all("SELECT * FROM closures", (err, rows) => data.closures = (rows || []).map(r => ({...r, details: JSON.parse(r.details_json)})));
                 db.all("SELECT * FROM users", (err, rows) => data.users = rows || []);
                 db.all("SELECT * FROM clients ORDER BY name ASC", (err, rows) => data.clients = rows || []);
-                // Intentamos leer movimientos, si falla (tabla no existe en DB vieja) devolvemos vacío
                 db.all("SELECT * FROM client_movements ORDER BY id DESC LIMIT 500", (err, rows) => {
                     data.movements = rows || [];
                     resolve(data);
@@ -61,61 +63,72 @@ ipcMain.handle('db-get-all', async () => {
     });
 });
 
-// 2. Guardar Cliente (Soporta Saldo Inicial)
-ipcMain.handle('db-save-client', async (e, c) => {
-    return new Promise(resolve => {
-        if(c.id){
-            db.run("UPDATE clients SET name=?, phone=?, address=? WHERE id=?", [c.name, c.phone, c.address, c.id], (err)=>resolve(!err));
-        } else {
-            const saldo = c.balance || 0;
-            db.run("INSERT INTO clients (name, phone, address, balance) VALUES (?,?,?,?)", 
-                [c.name, c.phone, c.address, saldo], (err)=>resolve(!err));
-        }
-    });
-});
-
-// 3. Pagar Deuda
-ipcMain.handle('db-pay-debt', async (e, {clientId, amount, note}) => {
-    return new Promise(resolve => {
-        db.serialize(() => {
-            db.run("BEGIN TRANSACTION");
-            db.run("UPDATE clients SET balance = balance - ? WHERE id = ?", [amount, clientId]);
-            db.run("INSERT INTO client_movements (client_id, date, type, amount, note) VALUES (?,?,?,?,?)", 
-                [clientId, new Date().toLocaleString(), 'PAGO', amount, note || 'Entrega a cuenta']);
-            db.run("COMMIT", (err) => resolve({success: !err}));
+// 2. GUARDAR PRODUCTO (CORREGIDO: AHORA GUARDA MARCA Y CATEGORIA)
+ipcMain.handle('db-save-product', async (e, p) => {
+    return new Promise((resolve) => {
+        db.get("SELECT code FROM products WHERE code = ?", [p.code], (err, row) => {
+            // ERROR ESTABA AQUI: Faltaban brand, category y subcategory en este array
+            const params = [
+                p.name, 
+                p.supplier, 
+                p.brand,       // Agregado
+                p.category,    // Agregado
+                p.subcategory, // Agregado
+                p.size, 
+                p.color, 
+                p.cost, 
+                p.margin, 
+                p.price, 
+                p.qty
+            ];
+            
+            if(row) {
+                // UPDATE
+                db.run(`UPDATE products SET name=?, supplier=?, brand=?, category=?, subcategory=?, size=?, color=?, cost=?, margin=?, price=?, qty=? WHERE code=?`, 
+                    [...params, p.code], (err) => {
+                        if(err) console.log("Error Update:", err); // Para ver errores
+                        resolve(!err);
+                    });
+            } else {
+                // INSERT
+                db.run(`INSERT INTO products VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`, 
+                    [p.code, ...params], (err) => {
+                        if(err) console.log("Error Insert:", err); // Para ver errores
+                        resolve(!err);
+                    });
+            }
         });
     });
 });
 
-// 4. Guardar Venta (Con Cta Cte)
+// 3. Guardar Venta
 ipcMain.handle('db-save-sale', async (e, s) => {
     return new Promise((resolve) => {
         db.serialize(() => {
             db.run("BEGIN TRANSACTION");
-            
-            // Insertar Venta
-            const itemsStr = JSON.stringify(s.items);
-            db.run("INSERT INTO sales (id, date, seller, total, payment, card_name, surcharge, discount, client_id, items_json) VALUES (?,?,?,?,?,?,?,?,?,?)",
-                [s.id, s.date, s.seller, s.total, s.payment, s.card_name, s.surcharge, s.discount, s.client_id, itemsStr]);
-            
-            // Stock
-            s.items.forEach(item => {
-                if(!item.isManual) db.run("UPDATE products SET qty = qty - ? WHERE code = ?", [item.qty, item.code]);
-            });
+            try {
+                db.run("INSERT INTO sales (id, date, seller, total, payment, card_name, surcharge, discount, client_id, items_json) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    [s.id, s.date, s.seller, s.total, s.payment, s.card_name, s.surcharge, s.discount, s.client_id, JSON.stringify(s.items)]);
+                
+                s.items.forEach(item => {
+                    if(!item.isManual) db.run("UPDATE products SET qty = qty - ? WHERE code = ?", [item.qty, item.code]);
+                });
 
-            // Cta Cte
-            if (s.payment === 'Cuenta Corriente' && s.client_id) {
-                db.run("UPDATE clients SET balance = balance + ? WHERE id = ?", [s.total, s.client_id]);
-                db.run("INSERT INTO client_movements (client_id, date, type, amount, note) VALUES (?,?,?,?,?)", 
-                    [s.client_id, s.date, 'DEUDA', s.total, `Compra #${s.id}`]);
+                if (s.payment === 'Cuenta Corriente' && s.client_id) {
+                    db.run("UPDATE clients SET balance = balance + ? WHERE id = ?", [s.total, s.client_id]);
+                    db.run("INSERT INTO client_movements (client_id, date, type, amount, note) VALUES (?,?,?,?,?)", 
+                        [s.client_id, s.date, 'DEUDA', s.total, `Compra #${s.id}`]);
+                }
+                db.run("COMMIT", (err) => resolve({success: !err}));
+            } catch (error) {
+                db.run("ROLLBACK");
+                resolve({success: false, error: error.message});
             }
-
-            db.run("COMMIT", (err) => resolve({success: !err}));
         });
     });
 });
 
-// 5. Excel Profesional
+// 4. Excel
 ipcMain.handle('exportar-excel', async (event, payload) => {
     try {
         const { ventas, cierres } = payload;
@@ -136,19 +149,20 @@ ipcMain.handle('exportar-excel', async (event, payload) => {
         });
 
         const resumenData = [
-            ["REPORTE DE CIERRE"], ["Fecha:", new Date().toLocaleDateString()], [" "],
+            ["REPORTE DE CAJA"], ["Fecha:", new Date().toLocaleDateString()], [" "],
             ["RESUMEN FINANCIERO", "MONTO"],
-            ["Total Efectivo", totalEfectivo],
-            ["Total Digital", totalDigital],
-            ["Total Fiado (Cta Cte)", totalCtaCte],
+            ["Total Efectivo", totalEfectivo], ["Total Digital", totalDigital], ["Total Fiado", totalCtaCte],
             ["TOTAL VENDIDO", totalGeneral], [" "],
             ["ARQUEOS"], ["Hora", "Usuario", "Sistema", "Real", "Diferencia", "Estado"]
         ];
         cierres.forEach(c => resumenData.push([c.date.split(',')[1], c.user, c.sys_cash, c.real_cash, c.diff, c.status]));
         xlsx.utils.book_append_sheet(wb, xlsx.utils.aoa_to_sheet(resumenData), "Resumen");
         
-        const detalleData = [["ID", "Hora", "Vendedor", "Cliente", "Pago", "Total"]];
-        ventas.forEach(v => detalleData.push([v.id, v.date.split(',')[1], v.seller, v.client_id?'Cliente':'Final', v.payment, v.total]));
+        const detalleData = [["ID", "Hora", "Vendedor", "Cliente", "Items", "Pago", "Total"]];
+        ventas.forEach(v => {
+            const itemsStr = v.items.map(i => `${i.qty}x ${i.name}`).join(" | ");
+            detalleData.push([v.id, v.date.split(',')[1], v.seller, v.client_id?'Cliente':'Final', itemsStr, v.payment, v.total]);
+        });
         xlsx.utils.book_append_sheet(wb, xlsx.utils.aoa_to_sheet(detalleData), "Detalle");
 
         xlsx.writeFile(wb, filePath);
@@ -158,12 +172,19 @@ ipcMain.handle('exportar-excel', async (event, payload) => {
 });
 
 // Otros Handlers
-ipcMain.handle('db-save-product', async (e, p) => {
+ipcMain.handle('db-save-client', async (e, c) => {
     return new Promise(resolve => {
-        db.get("SELECT code FROM products WHERE code = ?", [p.code], (err, row) => {
-            const params = [p.name, p.supplier, p.size, p.color, p.cost, p.margin, p.price, p.qty];
-            if(row) db.run("UPDATE products SET name=?, supplier=?, size=?, color=?, cost=?, margin=?, price=?, qty=? WHERE code=?", [...params, p.code], (err) => resolve(!err));
-            else db.run("INSERT INTO products VALUES (?,?,?,?,?,?,?,?,?)", [p.code, ...params], (err) => resolve(!err));
+        if(c.id) db.run("UPDATE clients SET name=?, phone=?, address=? WHERE id=?", [c.name, c.phone, c.address, c.id], (err)=>resolve(!err));
+        else db.run("INSERT INTO clients (name, phone, address, balance) VALUES (?,?,?,?)", [c.name, c.phone, c.address, c.balance||0], (err)=>resolve(!err));
+    });
+});
+ipcMain.handle('db-pay-debt', async (e, {clientId, amount, note}) => {
+    return new Promise(resolve => {
+        db.serialize(() => {
+            db.run("BEGIN");
+            db.run("UPDATE clients SET balance = balance - ? WHERE id = ?", [amount, clientId]);
+            db.run("INSERT INTO client_movements (client_id, date, type, amount, note) VALUES (?,?,?,?,?)", [clientId, new Date().toLocaleString(), 'PAGO', amount, note || 'Pago']);
+            db.run("COMMIT", (err) => resolve({success: !err}));
         });
     });
 });

@@ -282,7 +282,8 @@
              <div class="row" style="align-items:flex-end">
                <div style="flex:1"><label>Escanear</label><input id="scanInput" placeholder="Código..." autofocus></div>
                <div style="width:100px"><label>Cant.</label><input id="scanQty" type="number" value="1" min="1" style="text-align:center"></div>
-               <button class="btn" style="height:52px" onclick="manualScan()"><i class="fas fa-plus"></i></button>
+               <button class="btn" onclick="manualScan(1)">Agregar</button>
+<button class="btn" style="background:var(--danger)" onclick="manualScan(-1)">Devolución</button> 
                <button class="btn secondary" style="height:52px;" onclick="openManualModal()"><i class="fas fa-keyboard"></i> Manual</button>
              </div>
           </div>
@@ -308,8 +309,18 @@
                           <option value="Credito">Crédito</option>
                           <option value="Cuenta Corriente" style="color:orange">Cuenta Corriente (Fiar)</option> 
                       </select>
-                      <input id="cardName" placeholder="Nombre Tarjeta (Ej: Visa)" style="display:none; margin-top:5px; background:rgba(255,255,255,0.1); color:white; border:none;">
-                   </div>
+<input id="cardName" list="cardOptions" placeholder="Nombre Tarjeta (Ej: Visa)" 
+       style="display:none; margin-top:5px; background:rgba(255,255,255,0.1); color:white; border:none;" 
+       oninput="checkPromos()">
+<datalist id="cardOptions">
+    <option value="Tarjeta Tomate">
+    <option value="Visa">
+    <option value="Mastercard">
+    <option value="Mercado Pago">
+</datalist>
+<div id="promoBadge" style="display:none; color:var(--accent); font-size:12px; margin-top:5px; font-weight:bold;">
+    <i class="fas fa-tag"></i> ¡Promo Martes Aplicada!
+</div>                   </div>
                    
                    <div style="flex:1; text-align:right">
                        <div class="total-row" style="margin-bottom:5px; justify-content: flex-end; gap: 10px;">
@@ -346,6 +357,17 @@
           <label>Proveedor</label><input id="st_prov" list="provList"><datalist id="provList"></datalist>
           
           <div class="row">
+            <div class="col"><label>Marca</label><input id="st_brand" placeholder="Ej: Selú"></div>
+            <div class="col"><label>Categoría</label><input id="st_cat" placeholder="Ej: Corpiño"></div>
+          </div>
+          <label>Subcategoría</label><input id="st_sub" placeholder="Ej: Deportivo / Taza Soft">
+          
+          <div class="row">
+            <div class="col"><label>Talle</label><input id="st_size" placeholder="Ej: 95"></div>
+            <div class="col"><label>Color</label><input id="st_color" placeholder="Ej: Rojo"></div>
+          </div>
+
+          <div class="row">
               <div class="col"><label>Costo</label><input id="st_cost" type="number" oninput="calcFromCost()"></div>
               <div class="col"><label>Margen %</label><input id="st_margin" type="number" oninput="calcFromMargin()"></div>
           </div>
@@ -355,7 +377,10 @@
               <div class="col"><label>Stock</label><input id="st_qty" type="number" onkeydown="if(event.key==='Enter') saveProduct()"></div>
           </div>
           
-          <div style="display:flex; gap:10px; margin-top:20px;"><button class="btn" style="flex:1" onclick="saveProduct()">Guardar</button><button class="btn secondary" style="flex:1" onclick="clearSt()">Nuevo</button></div>
+          <div style="display:flex; gap:10px; margin-top:20px;">
+              <button class="btn" style="flex:1" onclick="saveProduct()">Guardar</button>
+              <button class="btn secondary" style="flex:1" onclick="clearSt()">Nuevo</button>
+          </div>
           
           <div style="margin-top:30px; padding:15px; background:rgba(245, 158, 11, 0.1); border-radius:12px; border:1px solid var(--warning);">
              <h4 style="margin:0 0 10px 0; color:var(--warning)">Aumento Masivo</h4>
@@ -364,25 +389,44 @@
           </div>
         </div>
       </div>
+
       <div class="col">
         <div class="card">
-          <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
-              <input id="searchSt" placeholder="Buscar..." style="max-width:300px">
-              <div style="display:flex; gap:10px">
-                  <button class="btn secondary" onclick="printSelectedLabels()"><i class="fas fa-tags"></i> Etiquetas</button>
-                  <button class="btn success" onclick="exportStockCSV()"><i class="fas fa-file-excel"></i> Excel</button>
-              </div>
+          <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center; flex-wrap:wrap">
+              <input id="searchSt" placeholder="🔍 Buscar nombre, código..." style="flex:2; min-width:150px" oninput="renderStock()">
+              
+              <select id="filterBrand" onchange="renderStock()" style="flex:1; min-width:120px; cursor:pointer">
+                <option value="">Todas las Marcas</option>
+              </select>
+              
+              <select id="filterCat" onchange="renderStock()" style="flex:1; min-width:120px; cursor:pointer">
+                <option value="">Todas las Categorías</option>
+              </select>
+
+              <button class="btn secondary" onclick="clearFilters()" title="Limpiar Filtros"><i class="fas fa-eraser"></i></button>
+              <button class="btn success" onclick="exportStockCSV()"><i class="fas fa-file-excel"></i></button>
           </div>
+
           <div class="table-container">
             <table id="stockTable">
-                <thead><tr><th style="width:30px"><input type="checkbox" onchange="toggleAllLabels(this)"></th><th>Código</th><th>Nombre</th><th>Prov.</th><th>Precio</th><th>Stock</th><th></th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Cod</th>
+                        <th>Producto</th>
+                        <th>Marca</th>
+                        <th>Categ</th>
+                        <th>$$</th>
+                        <th>Stock</th>
+                        <th></th>
+                    </tr>
+                </thead>
                 <tbody></tbody>
             </table>
           </div>
         </div>
       </div>
     </div>
-  </div>
+</div>
 
   <div id="tab-clients" class="section">
      <div class="row" style="height:100%">
@@ -520,7 +564,7 @@ let clientToPay = null;
 window.addEventListener('DOMContentLoaded', async () => {
    await reloadData();
    
-   document.getElementById('scanInput').addEventListener('keydown', e => { if(e.key === 'Enter') manualScan(); });
+   document.getElementById('scanInput').addEventListener('keydown', e => { if(e.key === 'Enter') manualScan(1); });
    
    document.addEventListener('keydown', e => { 
        const overlay = document.getElementById('login-overlay');
@@ -552,6 +596,7 @@ async function reloadData(){
         updateProvList();
         renderClients();
         fillClientSelect();
+        fillFilters(); 
     } catch(e) { console.error(e); }
 }
 
@@ -580,27 +625,43 @@ function toggleCardInput(){
     else cardInput.style.display = 'none';
 }
 
-function manualScan(){
-   const input = document.getElementById('scanInput');
-   const code = input.value.trim();
-   if(!code) return;
-   if(code.length === 13 && code.startsWith('20')){
-      const plu = parseInt(code.substring(2,7)).toString();
-      const price = parseFloat(code.substring(7,12)) / 100;
-      const prod = DB.stock.find(s => s.code === plu);
-      addItemToCart(prod ? prod.name : `Balanza PLU ${plu}`, 1, price, prod ? prod.code : 'BAL-'+plu, true);
-      successScan(input); return;
-   }
-   const prod = DB.stock.find(s => s.code === code);
-   if(prod){
-      if(prod.qty <= 0) { showToast("¡SIN STOCK!", true); return; }
-      const qty = parseInt(document.getElementById('scanQty').value)||1;
-      const inCart = currentCart.find(i=>i.code===code && !i.isManual)?.qty || 0;
-      if(inCart + qty > prod.qty) { showToast(`¡Stock Insuficiente! (${prod.qty})`, true); return; }
-      addItemToCart(prod.name, qty, prod.price, prod.code, false);
-      successScan(input);
-      document.getElementById('scanQty').value=1;
-   } else { showToast("No encontrado", true); input.select(); }
+function manualScan(direction){ // direction: 1 es Venta, -1 es Devolución
+    let code = document.getElementById('scanInput').value;
+    
+    // VALIDACIÓN 1: Si está vacío, no hacer nada
+    if(!code) return; 
+
+    // VALIDACIÓN 2: Quitamos espacios vacíos (por si copiaste y pegaste con espacio)
+    code = code.trim();
+
+    // BUSQUEDA CORREGIDA: Usamos "==" para que "10" (texto) sea igual a 10 (número)
+    const prod = DB.stock.find(s => s.code == code);
+
+    if(prod){
+        // Si es venta normal (1) y no hay stock, avisar.
+        if(direction === 1 && prod.qty <= 0) return showToast("SIN STOCK", true);
+        
+        // Agregamos con cantidad positiva o negativa
+        // IMPORTANTE: Pasamos prod.code para asegurar que se use el del sistema
+        addItemToCart(prod.name, 1, prod.price, prod.code, false);
+        
+        // EXITOSO
+        playBeep(); // <--- AHORA SÍ VA A SONAR
+        document.getElementById('scanInput').value = '';
+        document.getElementById('scanInput').focus();
+        
+    } else {
+        playBeep(); // Sonido también en error (opcional, o usar otro sonido)
+        showToast("Producto NO Encontrado", true); 
+        
+        // Lógica opcional para productos manuales fuera de stock
+        if(confirm(`El código "${code}" no existe.\n¿Agregar ítem manual genérico?`)) {
+             let price = prompt("Precio del producto manual:");
+             if(price) addItemToCart("Manual (" + code + ")", 1, parseFloat(price), "MANUAL", true);
+             document.getElementById('scanInput').value = '';
+             document.getElementById('scanInput').focus();
+        }
+    }
 }
 
 function successScan(input){ input.value=''; playBeep(); input.focus(); }
@@ -613,13 +674,21 @@ function confirmManual(){
     addItemToCart(d+" (Manual)", 1, p, "MAN", true); closeManual();
 }
 function addItemToCart(name, qty, price, code, isManual){
-   if(isManual){ currentCart.push({ name, qty:1, price, subtotal:price, code, isManual:true }); }
-   else {
-      let item = currentCart.find(i => i.code === code && !i.isManual);
-      if(item){ item.qty += qty; item.subtotal = item.qty * item.price; }
-      else { currentCart.push({ name, qty, price, subtotal: price*qty, code, isManual:false }); }
+   if(isManual){ 
+       currentCart.push({ name, qty:1, price, subtotal:price, code, isManual:true }); 
+   } else {
+      // Buscamos si ya está en el carrito (comparando con == por seguridad)
+      let item = currentCart.find(i => i.code == code && !i.isManual);
+      
+      if(item){ 
+          item.qty += qty; 
+          item.subtotal = item.qty * item.price; 
+      } else { 
+          // Si es nuevo, lo empujamos
+          currentCart.push({ name, qty, price, subtotal: price*qty, code, isManual:false }); 
+      }
    }
-   renderCart();
+   renderCart(); // <--- Esto es lo que actualiza la tabla visualmente
 }
 function changeQty(idx, delta){
    const item = currentCart[idx];
@@ -847,33 +916,47 @@ function calcFromPrice(){
 }
 
 async function saveProduct(){
-   const p = { 
-       code: document.getElementById('st_code').value.trim(), 
-       name: document.getElementById('st_name').value.trim() || "Sin Nombre", 
-       supplier: document.getElementById('st_prov').value, 
-       cost: parseFloat(document.getElementById('st_cost').value)||0, 
-       margin: parseFloat(document.getElementById('st_margin').value)||0, 
-       price: parseFloat(document.getElementById('st_price').value)||0, 
-       qty: parseInt(document.getElementById('st_qty').value)||0 
-   };
-   if(!p.code) return showToast("Código es obligatorio", true);
-   await window.electronAPI.saveProduct(p); 
-   clearSt(); showToast("Guardado"); document.getElementById('st_code').focus(); await reloadData();
+    const code = document.getElementById('st_code').value;
+    if(!code) return showToast("Código obligatorio", true);
+    
+    await window.electronAPI.saveProduct({
+        code, 
+        name: document.getElementById('st_name').value,
+        supplier: document.getElementById('st_prov').value,
+        // NUEVOS CAMPOS LENCERIA:
+        brand: document.getElementById('st_brand').value,
+        category: document.getElementById('st_cat').value,
+        subcategory: document.getElementById('st_sub').value,
+        size: document.getElementById('st_size').value,
+        color: document.getElementById('st_color').value,
+        // FIN NUEVOS
+        cost: parseFloat(document.getElementById('st_cost').value)||0,
+        margin: parseFloat(document.getElementById('st_margin').value)||0,
+        price: parseFloat(document.getElementById('st_price').value)||0,
+        qty: parseInt(document.getElementById('st_qty').value)||0
+    });
+    clearSt(); reloadData(); showToast("Guardado");
 }
 function clearSt(){ ['st_code','st_name','st_prov','st_cost','st_margin','st_qty','st_price'].forEach(i=>document.getElementById(i).value=''); }
 
-function renderStock(){
-   const q = document.getElementById('searchSt').value.toLowerCase();
-   document.querySelector('#stockTable tbody').innerHTML = DB.stock.filter(s=>s.name.toLowerCase().includes(q)||s.code.includes(q)).map(s=>{
-       let cls = 'stock-ok';
-       if(s.qty <= 0) cls = 'stock-crit';
-       else if(s.qty <= 2) cls = 'stock-warn';
-       return `<tr><td><input type="checkbox" class="lbl-chk" data-code="${s.code}"></td><td>${s.code}</td><td>${s.name}</td><td>${s.supplier||'-'}</td><td>$${s.price.toFixed(2)}</td><td><span class="stock-badge ${cls}">${s.qty}</span></td><td><button class="btn secondary" onclick="editProd('${s.code}')"><i class="fas fa-edit"></i></button></td></tr>`;
-   }).join('');
-}
 document.getElementById('searchSt').addEventListener('input', renderStock);
-function editProd(c){ const s = DB.stock.find(x=>x.code===c); if(!s)return; document.getElementById('st_code').value=s.code; document.getElementById('st_name').value=s.name; document.getElementById('st_prov').value=s.supplier; document.getElementById('st_cost').value=s.cost; document.getElementById('st_margin').value=s.margin; document.getElementById('st_qty').value=s.qty; document.getElementById('st_price').value=s.price; }
-async function bulkUpdate(){ const p = document.getElementById('bulk_prov').value, pct=parseFloat(document.getElementById('bulk_pct').value); if(p && pct && confirm(`¿Aumentar ${pct}% a ${p}?`)){ await window.electronAPI.bulkUpdate({provider:p, pct}); await reloadData(); showToast("Actualizado"); } }
+function editProd(c){
+    const s = DB.stock.find(x=>x.code===c);
+    document.getElementById('st_code').value=s.code; 
+    document.getElementById('st_name').value=s.name;
+    // Nuevos campos
+    document.getElementById('st_brand').value=s.brand||''; 
+    document.getElementById('st_cat').value=s.category||'';
+    document.getElementById('st_sub').value=s.subcategory||''; 
+    document.getElementById('st_size').value=s.size||'';
+    document.getElementById('st_color').value=s.color||''; 
+    // Fin nuevos
+    document.getElementById('st_prov').value=s.supplier;
+    document.getElementById('st_cost').value=s.cost; 
+    document.getElementById('st_margin').value=s.margin;
+    document.getElementById('st_price').value=s.price; 
+    document.getElementById('st_qty').value=s.qty;
+}async function bulkUpdate(){ const p = document.getElementById('bulk_prov').value, pct=parseFloat(document.getElementById('bulk_pct').value); if(p && pct && confirm(`¿Aumentar ${pct}% a ${p}?`)){ await window.electronAPI.bulkUpdate({provider:p, pct}); await reloadData(); showToast("Actualizado"); } }
 function updateProvList(){ const p = [...new Set(DB.stock.map(x=>x.supplier).filter(Boolean))]; document.getElementById('provList').innerHTML=p.map(x=>`<option value="${x}">`).join(''); document.getElementById('bulk_prov').innerHTML='<option value="">Proveedor...</option>'+p.map(x=>`<option value="${x}">${x}</option>`).join(''); }
 
 async function exportStockCSV(){
@@ -973,6 +1056,105 @@ async function downloadExcel(){
     showToast("Generando Excel...", false);
     const r = await window.electronAPI.exportarExcel({ventas: DB.sales, cierres: DB.closures});
     if(r.success) showToast("Guardado OK"); else showToast("Error/Cancelado", true);
+}
+
+// --- NUEVA LÓGICA DE FILTROS Y PROMOS ---
+
+// 1. Llenar los selectores de Stock dinámicamente
+function fillFilters(){
+    // Extraer marcas únicas
+    const brands = [...new Set(DB.stock.map(s => s.brand).filter(Boolean))].sort();
+    const cats = [...new Set(DB.stock.map(s => s.category).filter(Boolean))].sort();
+    
+    const selBrand = document.getElementById('filterBrand');
+    const selCat = document.getElementById('filterCat');
+    
+    // Guardar selección actual para no perderla al recargar
+    const curBrand = selBrand.value;
+    const curCat = selCat.value;
+
+    selBrand.innerHTML = '<option value="">Todas las Marcas</option>' + brands.map(b => `<option value="${b}">${b}</option>`).join('');
+    selCat.innerHTML = '<option value="">Todas las Categorías</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+
+    selBrand.value = curBrand;
+    selCat.value = curCat;
+}
+
+function clearFilters(){
+    document.getElementById('searchSt').value = '';
+    document.getElementById('filterBrand').value = '';
+    document.getElementById('filterCat').value = '';
+    renderStock();
+}
+
+// 2. Sobrescribir renderStock para que use los filtros nuevos
+function renderStock(){
+    const q = document.getElementById('searchSt').value.toLowerCase();
+    const brandVal = document.getElementById('filterBrand').value;
+    const catVal = document.getElementById('filterCat').value;
+
+    const tbody = document.querySelector('#stockTable tbody');
+    
+    // REEMPLAZAR DENTRO DE function renderStock()
+const filtered = DB.stock.filter(s => {
+    // 1. Separamos lo que escribió el usuario en palabras (ej: "selu rojo" -> ["selu", "rojo"])
+    const terms = q.split(" ").filter(t => t.length > 0);
+    
+    // 2. Unimos todo el texto del producto para buscar ahí
+    const productText = `${s.name} ${s.code} ${s.brand||''} ${s.category||''} ${s.color||''}`.toLowerCase();
+
+    // 3. Verificamos que TODAS las palabras escritas estén en el producto
+    const matchText = terms.every(term => productText.includes(term));
+
+    const matchBrand = brandVal === "" || s.brand === brandVal;
+    const matchCat = catVal === "" || s.category === catVal;
+    
+    return matchText && matchBrand && matchCat;
+});
+
+    tbody.innerHTML = filtered.map(s=>`
+        <tr>
+            <td>${s.code}</td>
+            <td>${s.name} <small style="color:#888">${s.size||''} ${s.color||''}</small></td>
+            <td>${s.brand || '-'}</td>
+            <td>${s.category || '-'}</td>
+            <td>$${s.price.toFixed(2)}</td>
+            <td style="font-weight:bold; color:${s.qty<=0?'red':'lime'}">${s.qty}</td>
+            <td><button class="btn secondary" onclick="editProd('${s.code}')">Edit</button></td>
+        </tr>
+    `).join('');
+}
+
+// 3. Lógica de Promoción "Tarjeta Tomate" (Martes 5%)
+function checkPromos(){
+    const cardInput = document.getElementById('cardName');
+    const today = new Date().getDay(); // 0=Dom, 1=Lun, 2=Martes...
+    const isTuesday = (today === 2); 
+    const isTomate = cardInput.value.toLowerCase().includes('tomate');
+
+    const promoBadge = document.getElementById('promoBadge');
+    const discountInput = document.getElementById('discountAmt');
+
+    // Solo aplicamos si es Martes Y es Tarjeta Tomate
+    if(isTuesday && isTomate){
+        // Calculamos el subtotal actual
+        let subtotal = currentCart.reduce((a,b)=>a+b.subtotal, 0);
+        
+        // Calculamos el 5%
+        const discountVal = subtotal * 0.05;
+        
+        // Aplicamos al input de descuento
+        discountInput.value = discountVal.toFixed(2);
+        
+        promoBadge.style.display = 'block';
+    } else {
+        // Opcional: Si borra "Tomate", ¿sacamos el descuento?
+        // Por ahora lo dejamos manual para no ser invasivos, o lo ocultamos:
+        promoBadge.style.display = 'none';
+    }
+    
+    // Recalcular total final visualmente
+    calcTotalFinal();
 }
 
 async function addUser(){ const n=document.getElementById('u_name').value, p=document.getElementById('u_pin').value; if(n&&p) { await window.electronAPI.addUser({name:n, pin:p}); await reloadData(); document.getElementById('u_name').value=''; } }
