@@ -2,11 +2,13 @@
 <html lang="es" data-theme="dark">
 <head>
 <meta charset="utf-8" />
-<title>JyN SYSTEM- Final UI</title>
+<title>JyN SYSTEM - Final UI</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
-  /* --- SISTEMA DE DISEÑO (PALETAS SEPARADAS) --- */
+  /* --- SISTEMA DE DISEÑO (TU ESTILO ORIGINAL RESTAURADO) --- */
   :root {
     /* MODO OSCURO (Por defecto) */
     --bg-body: #0f172a;        /* Fondo General */
@@ -21,7 +23,7 @@
     --bg-total: #020617;       /* Fondo del bloque TOTAL */
     --bg-table-head: #0f172a;  /* Encabezado Tabla */
     
-    /* COLORES DE MARCA (Iguales en ambos modos) */
+    /* COLORES DE MARCA */
     --primary: #f43f5e;        /* Rojo/Rosa Acción */
     --accent: #10b981;         /* Verde Éxito */
     --danger: #ef4444;         /* Rojo Error */
@@ -32,18 +34,18 @@
   }
 
   [data-theme="light"] {
-    /* MODO CLARO (Sobrescritura) */
-    --bg-body: #f1f5f9;        /* Gris muy claro */
-    --bg-card: #ffffff;        /* Blanco puro */
-    --bg-input: #ffffff;       /* Blanco */
+    /* MODO CLARO */
+    --bg-body: #f1f5f9;
+    --bg-card: #ffffff;
+    --bg-input: #ffffff;
     --bg-hover: rgba(0, 0, 0, 0.05);
     
-    --text-main: #0f172a;      /* Azul muy oscuro (casi negro) */
-    --text-muted: #64748b;     /* Gris medio */
-    --border-color: #cbd5e1;   /* Gris borde */
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-color: #cbd5e1;
     
-    --bg-total: #1e293b;       /* El total lo dejamos oscuro para contraste, o gris oscuro */
-    --bg-table-head: #f8fafc;  /* Gris muy claro para tabla header */
+    --bg-total: #1e293b;
+    --bg-table-head: #f8fafc;
     
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
@@ -85,18 +87,18 @@
 
   /* --- LAYOUT PRINCIPAL --- */
   .main { flex: 1; padding: 20px; overflow-y: auto; position: relative; }
-  .section { display: none; height: 100%; animation: slideIn 0.2s ease-out; }
-  .section.active { display: block; }
+  .section { display: none; height: 100%; animation: slideIn 0.2s ease-out; flex-direction: column; }
+  .section.active { display: flex; }
   @keyframes slideIn { from {opacity: 0; transform: translateY(10px);} to {opacity: 1; transform: translateY(0);} }
 
   .row { display: flex; gap: 15px; height: 100%; }
-  .col { flex: 1; display: flex; flex-direction: column; height: 100%; } 
+  .col { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; } 
 
   /* CARDS */
   .card { 
     background: var(--bg-card); border-radius: var(--radius); padding: 20px; 
     box-shadow: var(--shadow); height: 100%; display: flex; flex-direction: column; 
-    border: 1px solid var(--border-color); 
+    border: 1px solid var(--border-color); overflow: hidden;
   }
 
   /* FORMS & INPUTS */
@@ -139,12 +141,6 @@
   td { padding: 14px 16px; border-bottom: 1px solid var(--border-color); font-size: 15px; color: var(--text-main); }
   tr:hover td { background: var(--bg-hover); }
 
-  /* STOCK BADGES */
-  .stock-badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 800; }
-  .stock-ok { color: var(--accent); background: rgba(16, 185, 129, 0.1); }
-  .stock-warn { color: var(--warning); background: rgba(245, 158, 11, 0.1); }
-  .stock-crit { color: var(--danger); background: rgba(239, 68, 68, 0.1); }
-
   /* --- POS SPECIFICS --- */
   .btn-sm { 
     width: 32px; height: 32px; border-radius: 8px; 
@@ -186,8 +182,9 @@
   .verdict-bad { background: rgba(239, 68, 68, 0.1); color: var(--danger); border-color: var(--danger); }
 
   /* --- MODALES --- */
-  .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-  .overlay-box { background: var(--bg-card); padding: 40px; border-radius: 24px; width: 360px; text-align: center; border: 1px solid var(--border-color); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); }
+  .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0, 0, 0, 0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; opacity: 0; pointer-events: none; transition: 0.2s; }
+  .overlay.active { opacity: 1; pointer-events: all; }
+  .overlay-box { background: var(--bg-card); padding: 40px; border-radius: 24px; width: 360px; text-align: center; border: 1px solid var(--border-color); box-shadow: none !important; }
   
   .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 30px; }
   .pin-btn { 
@@ -203,50 +200,44 @@
   .toast.show { opacity: 1; transform: translateY(0); }
   .toast.error { border-color: var(--danger); color: var(--danger); }
 
-  /* --- IMPRESIÓN --- */
-  #printable-area { display: none; }
-  
-/* REEMPLAZAR BLOQUE @media print CON ESTO: */
-@media print {
-    /* 1. Ocultamos TODO lo que sea hijo directo del body, MENOS el área de impresión */
-    body > *:not(#printable-area) {
-        display: none !important;
-    }
-
-    /* 2. Forzamos que el área de impresión sea lo único visible */
-    #printable-area {
-        display: block !important;
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        margin: 0;
-        padding: 0;
-        background: white;
-        color: black;
-        z-index: 99999; /* Asegura que esté encima de todo */
-    }
-
-    /* 3. Ajustes del ticket para que entre en papel de 80mm o 58mm */
-    .ticket-view { 
-        width: 100%; 
-        max-width: 300px; /* Ancho típico de ticketera */
-        font-family: 'Courier New', monospace; 
-        font-size: 12px;
-        color: black;
-    }
+  /* --- IMPRESIÓN CORREGIDA --- */
+  @media print {
+    body > *:not(#printable-area):not(#labels-area) { display: none !important; }
     
+    /* ETIQUETAS */
+    body.printing-labels #printable-area { display: none !important; }
+    body.printing-labels #labels-area {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px; padding: 10px; width: 100%;
+        position: absolute; top: 0; left: 0; background: white;
+    }
+    .label-item {
+        border: 1px dashed #ccc; padding: 10px; text-align: center;
+        page-break-inside: avoid; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; height: 140px; color: black;
+    }
+
+    /* TICKET */
+    #printable-area {
+        display: block !important; position: absolute; top: 0; left: 0;
+        width: 100%; background: white; color: black; z-index: 99999;
+    }
+    .ticket-view { width: 100%; max-width: 300px; font-family: 'Courier New', monospace; font-size: 12px; color: black; }
     .ticket-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
     .ticket-line { border-bottom: 1px dashed black; margin: 10px 0; }
     .ticket-center { text-align: center; }
-}
+  }
 </style>
 </head>
 <body>
 
 <div id="printable-area"></div>
+<div id="labels-area"></div>
 
-<div id="login-overlay" class="overlay">
+<div id="toast" class="toast"><span>Notificación</span></div>
+
+<div id="login-overlay" class="overlay active">
   <div class="overlay-box">
     <div style="font-size: 50px; margin-bottom: 10px; color:var(--primary);"><i class="fas fa-fingerprint"></i></div>
     <h3 style="color:var(--text-main)">Bienvenido</h3>
@@ -263,55 +254,63 @@
   </div>
 </div>
 
-<div id="client-detail-overlay" class="overlay" style="display:none">
+<div id="client-detail-overlay" class="overlay">
   <div class="overlay-box" style="width: 800px; max-width:95%; height:80vh; display:flex; flex-direction:column; text-align:left">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
         <h3 style="margin:0; color:var(--primary)" id="detailClientName">Historial</h3>
-        <button class="btn secondary" onclick="document.getElementById('client-detail-overlay').style.display='none'"><i class="fas fa-times"></i></button>
+        <button class="btn secondary" onclick="document.getElementById('client-detail-overlay').classList.remove('active')"><i class="fas fa-times"></i></button>
     </div>
-    
     <div class="table-container">
         <table id="clientHistoryTable">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Tipo</th>
-                    <th>Detalle / Artículos</th>
-                    <th>Vendedor</th>
-                    <th>Monto</th>
-                </tr>
-            </thead>
+            <thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th>Vendedor</th><th>Monto</th></tr></thead>
             <tbody></tbody>
         </table>
     </div>
   </div>
 </div>
 
-<div id="return-overlay" class="overlay" style="display:none">
+<div id="expense-overlay" class="overlay">
+  <div class="overlay-box" style="border-top: 5px solid var(--warning);">
+    <h3 style="color:var(--warning)"><i class="fas fa-hand-holding-usd"></i> Pago a Proveedor / Retiro</h3>
+    <label>Descripción (¿A quién?)</label>
+    <input id="exp_desc" class="modal-input" placeholder="Ej: Coca Cola, Arcor...">
+    <label>Monto ($)</label>
+    <input id="exp_amount" type="number" class="modal-input" placeholder="0.00">
+    <label>Origen del Dinero</label>
+    <select id="exp_method" style="margin-bottom:20px">
+        <option value="Efectivo">Caja (Efectivo)</option>
+        <option value="Transferencia">Cuenta Banco / MercadoPago</option>
+    </select>
+    <div style="display:flex; gap:10px; margin-top:20px">
+        <button class="btn secondary" style="flex:1" onclick="document.getElementById('expense-overlay').classList.remove('active')">Cancelar</button>
+        <button class="btn" style="flex:1; background:var(--warning); color:black" onclick="confirmExpense()">Registrar Salida</button>
+    </div>
+  </div> 
+</div>
+
+<div id="return-overlay" class="overlay">
   <div class="overlay-box" style="border-color:var(--danger)">
     <h3 style="color:var(--danger)"><i class="fas fa-undo"></i> DEVOLUCIÓN</h3>
-    <p style="font-size:14px; color:var(--text-muted)">Ingresá el Código o Nombre del producto a devolver:</p>
-    
-    <input id="return_input" class="modal-input" placeholder="Código / Nombre..." autofocus 
+    <p style="font-size:14px; color:var(--text-muted)">Ingresá el Código o Nombre:</p>
+    <input id="return_input" class="modal-input" placeholder="Código..." autofocus 
            style="border-color:var(--danger); text-align:center; font-size:20px; font-weight:bold"
            onkeydown="if(event.key==='Enter') confirmReturnModal()">
-           
     <div style="display:flex; gap:10px; margin-top:20px">
-        <button class="btn secondary" style="flex:1" onclick="document.getElementById('return-overlay').style.display='none'">Cancelar</button>
+        <button class="btn secondary" style="flex:1" onclick="document.getElementById('return-overlay').classList.remove('active')">Cancelar</button>
         <button class="btn" style="flex:1; background:var(--danger)" onclick="confirmReturnModal()">Confirmar</button>
     </div>
   </div>
 </div>
 
-<div id="manual-overlay" class="overlay" style="display:none">
+<div id="manual-overlay" class="overlay">
   <div class="overlay-box">
-    <h3 style="color:var(--text-main)"><i class="fas fa-weight-hanging"></i> Carga Manual</h3>
-    <label style="text-align:left;">Descripción</label>
-    <input id="man_desc" class="modal-input" placeholder="Ej: Varios" onkeydown="if(event.key==='Enter') document.getElementById('man_price').focus()">
-    <label style="text-align:left;">Precio Total ($)</label>
-    <input id="man_price" type="number" step="0.01" class="modal-input" placeholder="0.00" onkeydown="if(event.key==='Enter') confirmManual()">
+    <h3 style="color:var(--text-main)">Carga Manual</h3>
+    <label>Descripción</label>
+    <input id="man_desc" class="modal-input" onkeydown="if(event.key==='Enter') document.getElementById('man_price').focus()">
+    <label>Precio Total ($)</label>
+    <input id="man_price" type="number" step="0.01" class="modal-input" onkeydown="if(event.key==='Enter') confirmManual()">
     <div style="display:flex; gap:10px; margin-top:20px">
-        <button class="btn secondary" style="flex:1" onclick="closeManual()">Cancelar</button>
+        <button class="btn secondary" style="flex:1" onclick="document.getElementById('manual-overlay').classList.remove('active')">Cancelar</button>
         <button class="btn" style="flex:1" onclick="confirmManual()">Agregar</button>
     </div>
   </div>
@@ -344,7 +343,7 @@
                <div style="flex:1"><label>Escanear</label><input id="scanInput" placeholder="Código..." autofocus></div>
                <div style="width:100px"><label>Cant.</label><input id="scanQty" type="number" value="1" min="1" style="text-align:center"></div>
                <button class="btn" onclick="manualScan(1)">Agregar</button>
-<button class="btn" style="background:var(--danger)" onclick="openReturnModal()">Devolución</button>
+               <button class="btn" style="background:var(--danger)" onclick="openReturnModal()">Devolución</button>
                <button class="btn secondary" style="height:52px;" onclick="openManualModal()"><i class="fas fa-keyboard"></i> Manual</button>
              </div>
           </div>
@@ -352,13 +351,11 @@
             <table id="posTable"><thead><tr><th>Descripción</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead><tbody></tbody></table>
           </div>
           <div style="padding:20px; background:var(--bg-body); border-top:1px solid var(--border-color)">
-             
              <div style="margin-bottom:15px; display:flex; gap:10px; align-items:center;">
                 <label style="margin:0; min-width:60px">Cliente:</label>
                 <select id="posClient" style="flex:1"><option value="">Consumidor Final</option></select>
                 <span id="clientDebtBadge" style="display:none; color:var(--danger); font-weight:bold; font-size:14px;">Deuda: $0.00</span>
              </div>
-
              <div class="total-block">
                 <div class="row" style="width:100%; align-items: flex-end;">
                    <div style="flex:1">
@@ -370,19 +367,10 @@
                           <option value="Credito">Crédito</option>
                           <option value="Cuenta Corriente" style="color:orange">Cuenta Corriente (Fiar)</option> 
                       </select>
-<input id="cardName" list="cardOptions" placeholder="Nombre Tarjeta (Ej: Visa)" 
-       style="display:none; margin-top:5px; background:rgba(255,255,255,0.1); color:white; border:none;" 
-       oninput="checkPromos()">
-<datalist id="cardOptions">
-    <option value="Tarjeta Tomate">
-    <option value="Visa">
-    <option value="Mastercard">
-    <option value="Mercado Pago">
-</datalist>
-<div id="promoBadge" style="display:none; color:var(--accent); font-size:12px; margin-top:5px; font-weight:bold;">
-    <i class="fas fa-tag"></i> ¡Promo Martes Aplicada!
-</div>                   </div>
-                   
+                      <input id="cardName" list="cardOptions" placeholder="Nombre Tarjeta (Ej: Visa)" style="display:none; margin-top:5px; background:rgba(255,255,255,0.1); color:white; border:none;" oninput="checkPromos()">
+                      <datalist id="cardOptions"><option value="Tarjeta Tomate"><option value="Visa"><option value="Mastercard"><option value="Mercado Pago"></datalist>
+                      <div id="promoBadge" style="display:none; color:var(--accent); font-size:12px; margin-top:5px; font-weight:bold;"><i class="fas fa-tag"></i> ¡Promo Martes Aplicada!</div>
+                   </div>
                    <div style="flex:1; text-align:right">
                        <div class="total-row" style="margin-bottom:5px; justify-content: flex-end; gap: 10px;">
                            <span style="font-size:13px; opacity:0.7">Subtotal:</span>
@@ -393,14 +381,13 @@
                            <input type="number" id="surchargePct" class="extra-input" value="0" oninput="calcTotalFinal()">
                        </div>
                        <div class="total-row" style="margin-bottom:10px; justify-content: flex-end; gap: 10px;">
-                           <span style="font-size:13px">Descuento ($):</span>
+                           <span style="font-size:13px">Descuento (%):</span>
                            <input type="number" id="discountAmt" class="extra-input" value="0" oninput="calcTotalFinal()">
                        </div>
                        <div class="big-total" id="displayTotal">$0.00</div>
                    </div>
                 </div>
              </div>
-             
              <button class="btn" style="width:100%; margin-top:15px; font-size:18px; padding:18px;" onclick="finishSale()">CONFIRMAR VENTA (F10)</button>
           </div>
         </div>
@@ -416,104 +403,76 @@
           <label>Código</label><input id="st_code" placeholder="Ej: 779... o 105">
           <label>Descripción</label><input id="st_name">
           <label>Proveedor</label><input id="st_prov" list="provList"><datalist id="provList"></datalist>
-          
           <div class="row">
-    <div class="col">
-        <label>Marca</label>
-        <input id="st_brand" list="listBrands" placeholder="Ej: Selú">
-        <datalist id="listBrands"></datalist> </div>
-    <div class="col">
-        <label>Categoría</label>
-        <input id="st_cat" list="listCats" placeholder="Ej: Corpiño">
-        <datalist id="listCats"></datalist> </div>
-</div>
-
-<label>Subcategoría / Modelo</label>
-<input id="st_sub" list="listSubs" placeholder="Ej: Deportivo / Taza Soft">
-<datalist id="listSubs"></datalist> 
-          
-          <div class="row">
-            <div class="col"><label>Talle</label><input id="st_size" placeholder="Ej: 95"></div>
-            <div class="col"><label>Color</label><input id="st_color" placeholder="Ej: Rojo"></div>
+            <div class="col"><label>Marca</label><input id="st_brand" list="listBrands"><datalist id="listBrands"></datalist></div>
+            <div class="col"><label>Categoría</label><input id="st_cat" list="listCats"><datalist id="listCats"></datalist></div>
           </div>
-
+          <label>Subcategoría / Modelo</label><input id="st_sub" list="listSubs"><datalist id="listSubs"></datalist> 
+          <div class="row">
+            <div class="col"><label>Talle</label><input id="st_size"></div>
+            <div class="col"><label>Color</label><input id="st_color"></div>
+          </div>
           <div class="row">
               <div class="col"><label>Costo</label><input id="st_cost" type="number" oninput="calcFromCost()"></div>
               <div class="col"><label>Margen %</label><input id="st_margin" type="number" oninput="calcFromMargin()"></div>
           </div>
-          
           <div class="row">
               <div class="col"><label>Venta</label><input id="st_price" type="number" oninput="calcFromPrice()" style="font-weight:bold; color:var(--accent)"></div>
               <div class="col"><label>Stock</label><input id="st_qty" type="number" onkeydown="if(event.key==='Enter') saveProduct()"></div>
           </div>
-          
           <div style="display:flex; gap:10px; margin-top:20px;">
               <button class="btn" style="flex:1" onclick="saveProduct()">Guardar</button>
               <button class="btn secondary" style="flex:1" onclick="clearSt()">Nuevo</button>
           </div>
-          
           <div style="margin-top:20px; padding:15px; background:rgba(245, 158, 11, 0.1); border-radius:12px; border:1px solid var(--warning);">
-    <h4 style="margin:0 0 10px 0; color:var(--warning)">Aumento Masivo</h4>
-    
-    <div style="display:flex; gap:5px; margin-bottom:5px">
-        <select id="bulk_type" onchange="toggleBulkInput()" style="flex:1">
-            <option value="supplier">Por Proveedor</option>
-            <option value="category">Por Categoría</option>
-        </select>
-    </div>
-
-    <select id="bulk_prov" style="margin-bottom:10px;"><option value="">Elegir Proveedor...</option></select>
-    <select id="bulk_cat_select" style="margin-bottom:10px; display:none"><option value="">Elegir Categoría...</option></select>
-
-    <div style="display:flex; gap:5px">
-        <input id="bulk_pct" type="number" placeholder="%">
-        <button class="btn" style="background:var(--warning); color:black" onclick="bulkUpdate()">Aplicar</button>
-    </div>
-</div>
+            <h4 style="margin:0 0 10px 0; color:var(--warning)">Aumento Masivo</h4>
+            <div style="display:flex; gap:5px; margin-bottom:5px">
+                <select id="bulk_type" style="flex:1"><option value="supplier">Por Proveedor</option><option value="category">Por Categoría</option></select>
+            </div>
+            <select id="bulk_prov" style="margin-bottom:10px;"><option value="">Elegir Proveedor...</option></select>
+            <select id="bulk_cat_select" style="margin-bottom:10px; display:none"><option value="">Elegir Categoría...</option></select>
+            <div style="display:flex; gap:5px">
+                <input id="bulk_pct" type="number" placeholder="%">
+                <button class="btn" style="background:var(--warning); color:black" onclick="bulkUpdate()">Aplicar</button>
+            </div>
+          </div>
         </div>
       </div>
-
       <div class="col">
         <div class="card">
           <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center; flex-wrap:wrap">
-              <input id="searchSt" placeholder="🔍 Buscar nombre, código..." style="flex:2; min-width:150px" oninput="renderStock()">
-              
-              <select id="filterBrand" onchange="renderStock()" style="flex:1; min-width:120px; cursor:pointer">
-                <option value="">Todas las Marcas</option>
-              </select>
-              
-              <select id="filterCat" onchange="renderStock()" style="flex:1; min-width:120px; cursor:pointer">
-                <option value="">Todas las Categorías</option>
-              </select>
+    <input id="searchSt" placeholder="🔍 Buscar nombre, código..." style="flex:2; min-width:150px">
+    
+    <select id="filterBrand" onchange="renderStock()" style="flex:1; min-width:120px; cursor:pointer">
+        <option value="">Todas las Marcas</option>
+    </select>
+    
+    <select id="filterCat" onchange="renderStock()" style="flex:1; min-width:120px; cursor:pointer">
+        <option value="">Todas las Categorías</option>
+    </select>
 
-              <button class="btn secondary" onclick="clearFilters()" title="Limpiar Filtros"><i class="fas fa-eraser"></i></button>
-              <button class="btn success" onclick="exportStockCSV()"><i class="fas fa-file-excel"></i></button>
-              <button class="btn" style="background:var(--danger); color:white" onclick="filterLowStock()" title="Ver Bajo Stock (<=5)"><i class="fas fa-exclamation-triangle"></i></button>
-          </div>
-
+    <button class="btn secondary" onclick="clearFilters()" title="Limpiar Filtros"><i class="fas fa-eraser"></i></button>
+    <button class="btn success" onclick="exportStockCSV()" title="Exportar Excel"><i class="fas fa-file-excel"></i></button>
+    <button class="btn" style="background:var(--danger); color:white" onclick="filterLowStock()" title="Ver Bajo Stock"><i class="fas fa-exclamation-triangle"></i></button>
+    
+    <div style="display:flex; gap:2px">
+        <button class="btn" style="background:#6366f1; color:white; border-radius: 10px 0 0 10px;" onclick="printBarcodeLabels()" title="Imprimir Etiquetas"><i class="fas fa-print"></i></button>
+        <button class="btn" style="background:#4f46e5; color:white; border-radius: 0 10px 10px 0;" onclick="downloadLabelsPDF()" title="Descargar PDF Etiquetas"><i class="fas fa-download"></i></button>
+    </div>
+</div>
           <div class="table-container">
             <table id="stockTable">
-                <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Descripción</th>
-                        <th>Marca</th>
-                        <th>Categoría</th>
-                        <th>Precio</th>
-                        <th>Stock</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
+            <thead><tr><th style="width: 40px; text-align: center;"><input type="checkbox" id="chk_all" onclick="toggleAllStock(this)" style="width: 18px; height: 18px; cursor: pointer;"></th><th>Código</th><th>Descripción</th><th>Marca</th><th>Categoría</th><th>Precio</th><th>Stock</th><th></th></tr></thead>
+            <tbody></tbody>
             </table>
           </div>
         </div>
       </div>
     </div>
-</div>
+  </div>
 
   <div id="tab-clients" class="section">
-     <div class="row" style="height:100%">
+      <div class="row" style="height:100%">
         <div class="col" style="flex:0 0 320px">
            <div class="card">
               <h3><i class="fas fa-user-plus"></i> Cliente</h3>
@@ -524,11 +483,10 @@
               <label>DNI</label><input id="cli_dni" type="number">
               <label style="color:var(--warning)">Deuda Inicial / Saldo ($)</label>
               <input type="number" id="cli_balance" placeholder="0.00">
-
               <div style="display:flex; gap:10px; margin-top:20px;">
                 <button class="btn" style="flex:1" onclick="saveClient()">Guardar</button>
-                <button class="btn secondary" onclick="resetClientForm()">Nuevo</button></div>
-
+                <button class="btn secondary" onclick="resetClientForm()">Nuevo</button>
+              </div>
               <div id="paymentBox" style="display:none; margin-top:30px; padding:15px; border:1px solid var(--primary); background:rgba(244,63,94,0.1); border-radius:10px;">
     <h4 style="margin-top:0; color:var(--primary)">Registrar Pago de Deuda</h4>
     <p>Deuda Actual: <strong id="lblDebt" style="font-size:18px">$0.00</strong></p>
@@ -537,7 +495,7 @@
     <input type="number" id="payAmt" placeholder="Monto">
     
     <label>Medio de Pago</label>
-    <select id="payMethodDebt" style="margin-bottom:10px">
+    <select id="payMethodDebt" style="margin-bottom:10px; width: 100%; padding: 10px; background: var(--bg-input); color: white; border: 1px solid var(--border-color);">
         <option value="Efectivo">Efectivo</option>
         <option value="Transferencia">Transferencia</option>
         <option value="Debito">Débito</option>
@@ -549,16 +507,13 @@
         </div>
         <div class="col">
            <div class="card">
-               <input id="searchClient" placeholder="Buscar cliente..." oninput="renderClients()">
+               <input id="searchClient" placeholder="Buscar cliente...">
                <div class="table-container">
-                   <table id="clientsTable">
-                       <thead><tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th><th>Saldo (Deuda)</th><th>Acción</th></tr></thead>
-                       <tbody></tbody>
-                   </table>
+                   <table id="clientsTable"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th><th>Saldo (Deuda)</th><th>Acción</th></tr></thead><tbody></tbody></table>
                </div>
            </div>
         </div>
-     </div>
+      </div>
   </div>
 
   <div id="tab-history" class="section">
@@ -567,14 +522,16 @@
          <div class="card">
             <h3><i class="fas fa-chart-line"></i> Resumen Sistema</h3>
             <div style="background:var(--bg-input); padding:20px; border-radius:16px; margin-bottom:20px; border:1px solid var(--border-color);">
-               <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><span>Efectivo Sistema:</span><strong id="sys_cash" style="color:var(--text-main)">$0.00</strong></div>
-               <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><span>Digital Sistema:</span><strong id="sys_dig" style="color:var(--text-main)">$0.00</strong></div>
-               <div style="display:flex; justify-content:space-between; margin-bottom:12px; color:var(--warning)"><span>Ventas Cta. Cte. (Fiado):</span><strong id="sys_cta">$0.00</strong></div>
-               
-               <div style="border-top:1px solid var(--border-color); padding-top:12px; display:flex; justify-content:space-between; font-size:20px;"><span>Total Ventas:</span><strong id="sys_total" style="color:var(--accent)">$0.00</strong></div>
+               <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><span>Efectivo Ventas:</span><strong id="sys_cash_in" style="color:var(--text-main)">$0.00</strong></div>
+               <div style="display:flex; justify-content:space-between; margin-bottom:12px; color:var(--warning)"><span>(-) Pagos/Gastos Efectivo:</span><strong id="sys_cash_out">$0.00</strong></div>
+               <div style="border-top:1px dashed var(--border-color); margin:10px 0"></div>
+               <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><span>Efectivo DEBE HABER:</span><strong id="sys_cash" style="color:var(--accent); font-size:18px">$0.00</strong></div>
+               <div style="display:flex; justify-content:space-between; margin-bottom:12px; opacity:0.7"><span>Digital Sistema:</span><strong id="sys_dig">$0.00</strong></div>
+               <div style="border-top:1px solid var(--border-color); padding-top:12px; display:flex; justify-content:space-between; font-size:20px;"><span>Total Ventas (Bruto):</span><strong id="sys_total" style="color:white">$0.00</strong></div>
             </div>
+            <button class="btn" style="width:100%; margin-bottom:10px; background:var(--warning); color:black; font-weight:bold" onclick="openExpenseModal()"><i class="fas fa-minus-circle"></i> REGISTRAR PAGO / GASTO</button>
             <button class="btn success" style="width:100%; margin-bottom:20px;" onclick="downloadExcel()"><i class="fas fa-file-excel"></i> Cerrar Caja y Generar Excel</button>
-            <h4>Últimas 10 Ventas</h4>
+            <h4>Últimas 10 Movimientos</h4>
             <div class="table-container"><table id="historyTable"><thead><tr><th>Hora</th><th>Total</th><th>Pago</th></tr></thead><tbody></tbody></table></div>
          </div>
       </div>
@@ -626,9 +583,8 @@
 
 </div>
 
-<div id="toast" class="toast"><span>Notificación</span></div>
-
 <script>
+// --- AUDIO Y UTILS ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playBeep() {
   if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -637,1049 +593,707 @@ function playBeep() {
   osc.type='square'; osc.frequency.value=800; gain.gain.value=0.1;
   osc.start(); setTimeout(()=>osc.stop(), 100);
 }
-
-// --- TEMA ---
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
 function toggleTheme() {
     const html = document.documentElement;
-    const current = html.getAttribute('data-theme');
-    const next = current === 'dark' ? 'light' : 'dark';
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
 }
 if(localStorage.getItem('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
 
-let DB = { stock: [], users: [], sales: [], closures: [], clients: [], movements: [] };
+// --- VARIABLES GLOBALES ---
+let DB = { stock: [], users: [], sales: [], closures: [], clients: [], movements: [], expenses: [] };
+let isEditingStock = false;
 let currentUser = null;
 let currentCart = [];
 let clientToPay = null;
 
-// --- FUNCIÓN DE NAVEGACIÓN (Faltaba esto) ---
+// --- NAVEGACION ---
 function nav(sectionId) {
-    // 1. Ocultar todas las secciones
-    document.querySelectorAll('.section').forEach(sec => {
-        sec.classList.remove('active');
-    });
-
-    // 2. Mostrar la sección seleccionada (concatena 'tab-' con el id, ej: tab-stock)
-    const target = document.getElementById('tab-' + sectionId);
-    if(target) {
-        target.classList.add('active');
-    }
-
-    // 3. Actualizar el estilo de los botones (el color rojo de activo)
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    // Buscamos el botón que tiene el onclick correspondiente para activarlo visualmente
+    document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+    document.getElementById('tab-' + sectionId).classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.querySelector(`button[onclick="nav('${sectionId}')"]`);
-    if(activeBtn) {
-        activeBtn.classList.add('active');
-    }
-
-    // 4. (Opcional) Si vamos a la pantalla de Ventas, poner foco en el scanner automáticamente
-    if(sectionId === 'pos') {
-        setTimeout(() => document.getElementById('scanInput').focus(), 100);
-    }
+    if(activeBtn) activeBtn.classList.add('active');
+    if(sectionId === 'pos') setTimeout(() => document.getElementById('scanInput').focus(), 100);
 }
 
+// --- CARGA DE DATOS ---
 window.addEventListener('DOMContentLoaded', async () => {
     await reloadData();
-
     document.getElementById('scanInput').addEventListener('keydown', e => { if(e.key === 'Enter') manualScan(1); });
-   
-    document.addEventListener('keydown', e => { 
-        const overlay = document.getElementById('login-overlay');
-        if(overlay.style.display !== 'none'){
-            if(e.key >= '0' && e.key <= '9') typePin(e.key);
-            if(e.key === 'Backspace') clearPin();
-            if(e.key === 'Enter') doLogin();
-            return; 
+    // REEMPLAZAR EL LISTENER DE KEYDOWN EN index.html
+document.addEventListener('keydown', e => { 
+    // Si la pantalla de Login está activa, activamos el teclado numérico
+    if(document.getElementById('login-overlay').classList.contains('active')){
+        if(e.key >= '0' && e.key <= '9') typePin(e.key);
+        if(e.key === 'Backspace') {
+            // Borrar el último caracter
+            pinDisplay.value = pinDisplay.value.slice(0, -1);
         }
-        if(e.key === 'F10') finishSale(); 
-    });
+        if(e.key === 'Enter') doLogin();
+        return; // Importante: si estamos en login, no hacer nada más
+    }
+
+    // Atajos del sistema (solo si ya estás logueado)
+    if(e.key === 'F10') finishSale();
+    if(e.key === 'Escape') {
+        // Cerrar modales con ESC
+        document.querySelectorAll('.overlay').forEach(o => o.classList.remove('active'));
+    }
 });
+    document.getElementById('searchSt').addEventListener('input', debounce(() => renderStock(), 300));
+    document.getElementById('searchClient').addEventListener('input', debounce(() => renderClients(), 300));
+});
+
+// Variable Global Nueva (Agrégala arriba con las otras)
+let StockMap = new Map(); // <--- INDICE RAPIDO
 
 async function reloadData(){
     try { 
         const data = await window.electronAPI.getAllData(); 
+        if(!data.users) { setTimeout(reloadData, 500); return; }
         
-        // REINTENTO DE SEGURIDAD (Evita error crítico al iniciar)
-        if(!data.users || data.users.length === 0) {
-            console.log("DB cargando, reintentando...");
-            setTimeout(reloadData, 500);
-            return;
-        }
-
         DB = data; 
-        renderStock(); 
-        renderUsers(); 
-        updateArqueo(); 
-        updateLists();
-        renderClients();
-        fillClientSelect();
-        fillFilters(); 
+        
+        // --- OPTIMIZACIÓN: CREAR MAPA DE BÚSQUEDA RÁPIDA ---
+        StockMap.clear();
+        DB.stock.forEach(prod => {
+            // Guardamos el producto usando el CÓDIGO como llave
+            StockMap.set(String(prod.code).trim(), prod);
+        });
+        // ---------------------------------------------------
+
+        renderStock(); renderUsers(); updateArqueo(); updateLists(); renderClients(); fillClientSelect(); fillFilters(); 
     } catch(e) { console.error(e); }
 }
 
+// --- LOGIN ---
 const pinDisplay=document.getElementById('loginPin');
 function typePin(n){ pinDisplay.value += n; }
 function clearPin(){ pinDisplay.value = ''; }
-// REEMPLAZAR doLogin y logout POR ESTAS:
-
 function doLogin(){
-   const u = DB.users.find(x => x.pin === pinDisplay.value);
-   if(u){ 
+    const u = DB.users.find(x => x.pin === pinDisplay.value);
+    if(u){ 
        currentUser = u; 
        document.getElementById('userBadge').innerText = u.name; 
-       document.getElementById('login-overlay').style.display = 'none'; 
+       document.getElementById('login-overlay').classList.remove('active'); 
        pinDisplay.value = ''; 
-       
-       // HABILITAMOS EL ESCANER AL ENTRAR
-       const scanInput = document.getElementById('scanInput');
-       scanInput.disabled = false; 
-       scanInput.value = ''; // Borramos cualquier basura que se haya escrito
-       scanInput.focus(); 
-   } 
-   else { 
-       showToast("PIN Incorrecto", true); 
-       pinDisplay.value = ''; 
-   }
+       document.getElementById('scanInput').disabled = false;
+       document.getElementById('scanInput').focus(); 
+    } else { 
+       showToast("PIN Incorrecto", true); pinDisplay.value = ''; 
+    }
 }
-
 function logout(){ 
     currentUser = null; 
-    document.getElementById('login-overlay').style.display = 'flex';
-    
-    // DESHABILITAMOS EL ESCANER AL SALIR (Para que no escriba atrás)
-    const scanInput = document.getElementById('scanInput');
-    scanInput.disabled = true;
+    document.getElementById('login-overlay').classList.add('active'); 
+    document.getElementById('scanInput').value = ''; 
+    document.getElementById('scanInput').disabled = true;
 }
 
-// --- POS LOGIC ---
+// --- POS VENTAS ---
 function toggleCardInput(){
     const m = document.getElementById('paymentMethod').value;
-    const cardInput = document.getElementById('cardName');
-    if(m === 'Debito' || m === 'Credito') cardInput.style.display = 'block';
-    else cardInput.style.display = 'none';
+    document.getElementById('cardName').style.display = (m === 'Debito' || m === 'Credito') ? 'block' : 'none';
 }
-
-// REEMPLAZAR LA FUNCIÓN manualScan POR ESTA:
-function manualScan(direction){ 
+// REEMPLAZAR LA FUNCIÓN manualScan EN TU SCRIPT
+function manualScan(direction) {
+    if (!currentUser || document.getElementById('login-overlay').classList.contains('active')) return;
+    
     let input = document.getElementById('scanInput');
     let code = input.value.trim();
-
-    // NUEVO: Si la caja está vacía y es devolución, PREGUNTAR código
-    if(!code && direction === -1){
-        code = prompt("Ingrese el CÓDIGO o NOMBRE del producto a devolver:");
-    }
-
-    // Si sigue vacío después de preguntar, avisar y salir
-    if(!code) return showToast("Ingrese un código primero", true);
-
-    // 1. Buscamos en la base de datos (con == para evitar error texto vs numero)
-    // Usamos el buscador inteligente que hicimos antes para que encuentre "Selu Rojo" también
-    const terms = code.toLowerCase().split(" ").filter(t => t.length > 0);
     
-    // Primero intentamos búsqueda exacta por CÓDIGO (prioridad al escanear)
-    let prod = DB.stock.find(s => s.code == code);
+    if (!code && direction === -1) code = prompt("Ingrese el CÓDIGO o NOMBRE del producto a devolver:");
+    if (!code) return showToast("Ingrese un código primero", true);
 
-    // Si no encuentra por código exacto, busca por nombre inteligente
-    if(!prod){
+    // --- BÚSQUEDA OPTIMIZADA (INSTANTÁNEA) ---
+    // 1. Primero intentamos buscar por código EXACTO en el Mapa (Velocidad de la luz)
+    let prod = StockMap.get(code);
+
+    // 2. Si no aparece por código exacto, recién ahí buscamos por nombre (Más lento, pero necesario si escriben texto)
+    if (!prod) {
+        const terms = code.toLowerCase().split(" ").filter(t => t.length > 0);
         prod = DB.stock.find(s => {
-            const productText = `${s.name} ${s.code} ${s.brand||''} ${s.category||''} ${s.color||''}`.toLowerCase();
+            const productText = `${s.name} ${s.brand || ''} ${s.category || ''} ${s.color || ''}`.toLowerCase();
             return terms.every(term => productText.includes(term));
         });
     }
+    // -----------------------------------------
 
-    if(prod){
-        // Si es VENTA (1) y no hay stock, avisar.
-        // Si es DEVOLUCIÓN (-1), no importa el stock, permitimos devolver.
-        if(direction === 1 && prod.qty <= 0) {
-            playBeep(); 
-            return showToast("SIN STOCK FÍSICO", true);
+    if (prod) {
+        // Bloqueo de Stock
+        if (direction === 1) { 
+            const qtyInput = parseInt(document.getElementById('scanQty').value) || 1;
+            const yaEnCarrito = currentCart.find(i => i.code === prod.code && !i.isManual)?.qty || 0;
+            const totalNecesario = yaEnCarrito + qtyInput;
+
+            if (prod.qty < totalNecesario) { 
+                playBeep(); 
+                showToast(`¡STOCK INSUFICIENTE! (Tienes ${prod.qty})`, true);
+                return; 
+            }
         }
-        
-        // Agregamos al carrito (pasamos direction que puede ser 1 o -1)
-        // IMPORTANTE: Pasamos prod.code para asegurar que se use el del sistema
+
         addItemToCart(prod.name, direction, prod.price, prod.code, false);
-        
         playBeep(); 
-        input.value = ''; // Limpiar caja
-        input.focus();    // Volver a poner el cursor listo
         
-        if(direction === -1) showToast("Producto en Devolución (-1)");
+        // --- TRUCO PARA EL ESCANER ---
+        // Los escaneres son muy rápidos. A veces conviene vaciar el input un microsegundo después
+        // para asegurar que no se mezclen caracteres.
+        input.value = ''; 
+        
+        // Forzamos el foco de nuevo por si se perdió
+        setTimeout(() => input.focus(), 10); 
+
+        if (direction === -1) showToast("Producto en Devolución (-1)");
 
     } else {
-        playBeep();
-        showToast("No encontrado", true); 
-        
-        // Opción manual si no existe
-        if(confirm(`El código "${code}" no existe en sistema.\n¿Agregar ítem MANUAL?`)) {
-             let price = prompt("Precio del producto manual:");
-             if(price) addItemToCart("Manual (" + code + ")", direction, parseFloat(price), "MANUAL", true);
-             input.value = '';
-             input.focus();
-        }
+        playBeep(); showToast("No encontrado", true);
+        if (confirm(`Código "${code}" no existe. ¿Agregar ítem MANUAL?`)) openManualModal();
     }
 }
-
-function successScan(input){ input.value=''; playBeep(); input.focus(); }
-function openManualModal(){ document.getElementById('manual-overlay').style.display = 'flex'; document.getElementById('man_desc').value=''; document.getElementById('man_price').value=''; setTimeout(()=>document.getElementById('man_desc').focus(),100); }
-function closeManual(){ document.getElementById('manual-overlay').style.display='none'; document.getElementById('scanInput').focus(); }
-function confirmManual(){
-    const d=document.getElementById('man_desc').value||"Varios";
-    const p=parseFloat(document.getElementById('man_price').value.replace(',','.'));
-    if(!p) return;
-    addItemToCart(d+" (Manual)", 1, p, "MAN", true); closeManual();
-}
 function addItemToCart(name, qty, price, code, isManual){
+   const qtyInput = parseInt(document.getElementById('scanQty').value) || 1;
+   const finalQty = qty * qtyInput; // Multiplica por el input de cantidad
+   
    if(isManual){ 
-       currentCart.push({ name, qty:1, price, subtotal:price, code, isManual:true }); 
+       currentCart.push({ name, qty: finalQty, price, subtotal:price*finalQty, code, isManual:true }); 
    } else {
-      // Buscamos si ya está en el carrito (comparando con == por seguridad)
       let item = currentCart.find(i => i.code == code && !i.isManual);
-      
-      if(item){ 
-          item.qty += qty; 
-          item.subtotal = item.qty * item.price; 
-      } else { 
-          // Si es nuevo, lo empujamos
-          currentCart.push({ name, qty, price, subtotal: price*qty, code, isManual:false }); 
-      }
+      if(item){ item.qty += finalQty; item.subtotal = item.qty * item.price; } 
+      else { currentCart.push({ name, qty:finalQty, price, subtotal: price*finalQty, code, isManual:false }); }
    }
-   renderCart(); // <--- Esto es lo que actualiza la tabla visualmente
+   document.getElementById('scanQty').value = 1; // Reset cantidad
+   renderCart();
 }
 function changeQty(idx, delta){
    const item = currentCart[idx];
-   if(item.isManual){ if(confirm("Eliminar?")) delItem(idx); return; }
-   if(delta>0){ const p = DB.stock.find(s=>s.code===item.code); if(p && item.qty+delta > p.qty){ showToast(`Tope Stock (${p.qty})`, true); return; } }
    item.qty += delta;
-   if(item.qty <= 0) delItem(idx); else { item.subtotal = item.qty * item.price; renderCart(); }
+   if(item.qty === 0) delItem(idx); else { item.subtotal = item.qty * item.price; renderCart(); }
 }
-
 function calcTotalFinal(){
     let subtotal = currentCart.reduce((a,b)=>a+b.subtotal, 0);
     const surPct = parseFloat(document.getElementById('surchargePct').value)||0;
-    const descAmt = parseFloat(document.getElementById('discountAmt').value)||0;
-    
-    // Cálculo
-    const surcharge = subtotal * (surPct/100);
-    const total = subtotal + surcharge - descAmt;
-    
-    // DOM Elements
+    const descPct = parseFloat(document.getElementById('discountAmt').value)||0;
+    const surcharge = subtotal * (surPct/100); 
+    const discount  = subtotal * (descPct/100); 
+    const total = subtotal + surcharge - discount;
+    document.getElementById('lblSubtotal').innerText = `$${subtotal.toFixed(2)}`;
     const lblTotal = document.getElementById('displayTotal');
-    const lblSub = document.getElementById('lblSubtotal');
-
-    // ACTUALIZACIÓN VISUAL
-    lblSub.innerText = `$${subtotal.toFixed(2)}`;
-    
-    if(total >= 0){
-        // VENTA NORMAL O CAMBIO CON DIFERENCIA A PAGAR
-        lblTotal.style.color = "var(--accent)"; // Verde
-        lblTotal.innerText = '$' + total.toFixed(2);
-        // Si hay items negativos y positivos mezclados, es un cambio
-        const hayDevolucion = currentCart.some(i => i.qty < 0);
-        if(hayDevolucion) document.getElementById('toast').innerHTML = "<span><i class='fas fa-exchange-alt'></i> Cambio: Cliente paga diferencia</span>";
-    } else {
-        // DEVOLUCIÓN (DINERO A FAVOR DEL CLIENTE)
-        lblTotal.style.color = "var(--danger)"; // Rojo
-        lblTotal.innerText = 'A DEVOLVER: $' + Math.abs(total).toFixed(2);
-    }
-
-    return { subtotal, surcharge, descAmt, total };
+    if(total >= 0){ lblTotal.style.color = "var(--accent)"; lblTotal.innerText = '$' + total.toFixed(2); } 
+    else { lblTotal.style.color = "var(--danger)"; lblTotal.innerText = 'A DEVOLVER: $' + Math.abs(total).toFixed(2); }
+    return { subtotal, surcharge, discount, total };
 }
-
 function renderCart(){
    const tbody = document.querySelector('#posTable tbody'); tbody.innerHTML='';
    currentCart.forEach((i, idx) => {
-      tbody.innerHTML += `<tr><td>${i.name}</td><td>${i.isManual?'-':`<div style="display:flex;gap:5px"><button class="btn-sm" onclick="changeQty(${idx},-1)">-</button>${i.qty}<button class="btn-sm" onclick="changeQty(${idx},1)">+</button></div>`}</td><td>$${i.price.toFixed(2)}</td><td>$${i.subtotal.toFixed(2)}</td><td><button class="btn-sm" style="color:var(--danger); border-color:var(--danger)" onclick="delItem(${idx})"><i class="fas fa-trash"></i></button></td></tr>`;
+      tbody.innerHTML += `<tr><td>${i.name}</td><td><div style="display:flex;gap:5px"><button class="btn-sm" onclick="changeQty(${idx},-1)">-</button>${i.qty}<button class="btn-sm" onclick="changeQty(${idx},1)">+</button></div></td><td>$${i.price.toFixed(2)}</td><td>$${i.subtotal.toFixed(2)}</td><td><button class="btn-sm" style="color:var(--danger); border-color:var(--danger)" onclick="delItem(${idx})"><i class="fas fa-trash"></i></button></td></tr>`;
    });
    calcTotalFinal();
 }
 function delItem(i){ currentCart.splice(i,1); renderCart(); }
 
 async function finishSale(){
-    // 1. Validar si hay productos
-    if(currentCart.length === 0) return showToast("El carrito está vacío", true);
-    
-    // 2. Calcular números finales
+    if(currentCart.length === 0) return showToast("Carrito vacío", true);
     const { total } = calcTotalFinal(); 
-    
-    // 3. Datos Cliente y Pago
     let payMethod = document.getElementById('paymentMethod').value;
     const cliIdVal = document.getElementById('posClient').value;
     const cliId = cliIdVal ? parseInt(cliIdVal) : null;
+    
+    // Alerta Lencería
+    const hayBombachas = currentCart.some(i => (i.name.toLowerCase().includes('bombacha') || i.name.toLowerCase().includes('tang')) && i.qty > 0);
+    if(hayBombachas && !confirm("👙 ATENCIÓN: Ropa interior NO TIENE CAMBIO. ¿Avisaste?")) return;
 
-    // --- ALERTA DE HIGIENE (LENCERÍA) ---
-    const hayBombachas = currentCart.some(i => 
-        (i.name.toLowerCase().includes('bombacha') || i.name.toLowerCase().includes('colaless') || i.name.toLowerCase().includes('tang')) 
-        && i.qty > 0 
-    );
+    if(payMethod === 'Cuenta Corriente' && !cliId){ alert("ERROR: Selecciona un Cliente para fiar."); return; }
 
-    if(hayBombachas){
-        if(!confirm("👙 ATENCIÓN: La venta incluye ropa interior inferior.\n\n¿Avisaste al cliente que NO TIENE CAMBIO por higiene?")){
-            return; 
-        }
-    }
-
-    // --- LÓGICA DE DEVOLUCIÓN / SALDO A FAVOR ---
-    if (total < 0) {
-        const montoDevolver = Math.abs(total).toFixed(2);
-
-        if (cliId) {
-            // CASO A: HAY CLIENTE SELECCIONADO
-            // Preguntamos si quiere la plata o dejarlo en la cuenta
-            if (confirm(`💰 DEVOLUCIÓN DE $${montoDevolver}\n\nCliente: ${document.getElementById('posClient').selectedOptions[0].text}\n\n[ACEPTAR] = Dejar como SALDO A FAVOR en Cuenta Corriente.\n[CANCELAR] = Devolver EFECTIVO ahora.`)) {
-                payMethod = 'Cuenta Corriente'; 
-            } else {
-                payMethod = 'Efectivo'; 
-            }
-        } else {
-            // CASO B: CONSUMIDOR FINAL (Sin cuenta)
-            // Solo efectivo, pero avisamos.
-            if(!confirm(`⚠️ DEVOLUCIÓN EN EFECTIVO: $${montoDevolver}\n\n(Para dejar saldo a favor, primero seleccioná un Cliente)\n\n¿Confirmar entrega de dinero?`)) return;
-            payMethod = 'Efectivo';
-        }
-    }
-
-    // 4. Validación Cta Corriente normal
-    if(payMethod === 'Cuenta Corriente' && !cliId){
-        alert("ERROR: Para Cuenta Corriente DEBE seleccionar un Cliente.");
-        return;
-    }
-
-    // 5. Fiscal
-    const fisElem = document.getElementById('checkFiscal');
-    const fis = fisElem ? fisElem.checked : false;
-    const cuitElem = document.getElementById('cuitCliente');
-    const cuit = cuitElem ? cuitElem.value : null;
-
-    if(fis && (!cuit || cuit.length !== 11)) return showToast("CUIT inválido para factura", true);
-
-    // 6. Armar objeto
     const sale = { 
-        id: Date.now(), 
-        date: new Date().toLocaleString(), 
-        seller: currentUser ? currentUser.name : 'Admin', 
-        items: currentCart, 
-        total: total, 
-        payment: payMethod,
-        card_name: document.getElementById('cardName').value,
-        surcharge: parseFloat(document.getElementById('surchargePct').value)||0,
-        discount: parseFloat(document.getElementById('discountAmt').value)||0,
-        client_id: cliId,
-        cuit: fis ? cuit : null,
-        fiscal: fis ? "Pendiente" : "No Fiscal",
-        items_json: "" 
+        id: Date.now(), date: new Date().toLocaleString(), seller: currentUser ? currentUser.name : 'Admin', 
+        items: currentCart, total: total, payment: payMethod, card_name: document.getElementById('cardName').value,
+        surcharge: parseFloat(document.getElementById('surchargePct').value)||0, discount: parseFloat(document.getElementById('discountAmt').value)||0,
+        client_id: cliId, fiscal: "No Fiscal" 
     };
 
-    console.log("Procesando...", sale);
-
-    // 7. Guardar
-    try {
-        if(fis && total > 0 && window.electronAPI.facturar){
-             showToast("Conectando AFIP...", false);
-             const r = await window.electronAPI.facturar(sale);
-             if(r.success) { sale.fiscal = `CAE: ${r.cae}`; showToast("Factura OK"); } 
-             else {
-                 if(!confirm("Fallo AFIP: " + r.error + "\n¿Guardar como venta común?")) return;
-                 sale.fiscal = "Error AFIP";
-             }
-        }
-
-        const res = await window.electronAPI.saveSale(sale);
-       
-       if(res.success) {
-           playBeep(); // Suena el beep
-           
-           showToast("¡Venta Guardada!"); // Mostramos el aviso visual primero
-
-           // --- SOLUCIÓN BEEP INFINITO ---
-           // Esperamos 300ms antes de bloquear la pantalla con el confirm
-           // Esto permite que el sonido termine de sonar y se apague.
-           setTimeout(() => {
-                if(total > 0 && confirm("¿Imprimir Ticket?")){ 
-                    printTicket(sale);
-                }
-           }, 300);
-           // ------------------------------
-           
-           // Limpieza
-           currentCart = []; 
-           document.getElementById('surchargePct').value = '';
-           document.getElementById('discountAmt').value = '';
-           document.getElementById('paymentMethod').value = 'Efectivo'; 
-           renderCart(); 
-           if(fisElem) { fisElem.checked = false; toggleFiscal(); }
-           await reloadData(); 
-
-       } else {
-           throw new Error(res.error || "Error en base de datos");
-       }
-    } catch(e) {
-        alert("ERROR AL PROCESAR:\n" + e.message);
-    }
+    const res = await window.electronAPI.saveSale(sale);
+    if(res.success) {
+        playBeep(); showToast("¡Venta Guardada!");
+        setTimeout(() => { if(total > 0 && confirm("¿Imprimir Ticket?")) printTicket(sale); }, 300);
+        currentCart = []; document.getElementById('paymentMethod').value = 'Efectivo'; renderCart(); await reloadData(); 
+    } else { alert(res.error || "Error DB"); }
 }
 
-// REEMPLAZAR EN index.html
+// --- IMPRESIÓN ---
 function printTicket(sale) {
     const printable = document.getElementById('printable-area');
-    
-    // Generamos el HTML
-    const itemsHtml = sale.items.map(i => 
-        `<div class="ticket-row">
-            <span>${i.qty} x ${i.name.substring(0, 18)}</span>
-            <span>$${(i.price * i.qty).toFixed(2)}</span>
-        </div>`
-    ).join('');
-
-    printable.innerHTML = `
-        <div class="ticket-view">
-            <div class="ticket-center">
-                <h3 style="margin:0">SHE LENCERIA</h3>
-                <p style="margin:5px 0">Fecha: ${sale.date.split(',')[0]} ${sale.date.split(',')[1]}</p>
-                <p style="margin:0">Vendedor: ${sale.seller}</p>
-            </div>
-            <div class="ticket-line"></div>
-            ${itemsHtml}
-            <div class="ticket-line"></div>
-            <div class="ticket-row" style="font-weight:bold; font-size:16px">
-                <span>TOTAL:</span>
-                <span>$${sale.total.toFixed(2)}</span>
-            </div>
-            <div class="ticket-row">
-                <span>Pago:</span>
-                <span>${sale.payment}</span>
-            </div>
-            <div class="ticket-center" style="margin-top:25px; font-size:15px">
-                *** GRACIAS POR SU COMPRA ***<br>
-                ESPAÑA 185
-            </div>
-        </div>
-    `;
-
-    // Imprimimos
+    const itemsHtml = sale.items.map(i => `<div class="ticket-row"><span>${i.qty} x ${i.name.substring(0, 18)}</span><span>$${(i.price * i.qty).toFixed(2)}</span></div>`).join('');
+    printable.innerHTML = `<div class="ticket-view"><div class="ticket-center"><h3 style="margin:0">SHE LENCERIA</h3><p style="margin:5px 0">${sale.date}</p><p style="margin:0">Vendedor: ${sale.seller}</p></div><div class="ticket-line"></div>${itemsHtml}<div class="ticket-line"></div><div class="ticket-row" style="font-weight:bold; font-size:16px"><span>TOTAL:</span><span>$${sale.total.toFixed(2)}</span></div><div class="ticket-row"><span>Pago:</span><span>${sale.payment}</span></div><div class="ticket-center" style="margin-top:25px; font-size:15px">*** GRACIAS ***<br>ESPAÑA 185</div></div>`;
     window.print();
-
-    // Limpiamos el área después de imprimir para que no moleste
-    setTimeout(() => {
-        printable.innerHTML = '';
-    }, 1000);
+    setTimeout(() => { printable.innerHTML = ''; }, 1000);
 }
-
-function toggleAllLabels(chk){ document.querySelectorAll('.lbl-chk').forEach(c => c.checked = chk.checked); }
-function printSelectedLabels(){
-    const selected = [];
-    document.querySelectorAll('.lbl-chk:checked').forEach(c => { const code = c.dataset.code; const prod = DB.stock.find(s => s.code === code); if(prod) selected.push(prod); });
+function printBarcodeLabels() {
+    const selected = document.querySelectorAll('.stock-chk:checked');
     if(selected.length === 0) return showToast("Seleccione productos", true);
-    window.print(); // Usar estilos CSS de impresión
-}
-
-// --- LOGICA CLIENTES ---
-function fillClientSelect(){
-    const sel = document.getElementById('posClient');
-    sel.innerHTML = '<option value="">Consumidor Final</option>' + DB.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    
-    sel.onchange = () => {
-        const c = DB.clients.find(x => x.id == sel.value);
-        const badge = document.getElementById('clientDebtBadge');
-        if(c && c.balance > 0) {
-            badge.style.display = 'inline';
-            badge.innerText = `Deuda: $${c.balance.toFixed(2)}`;
-        } else {
-            badge.style.display = 'none';
+    const area = document.getElementById('labels-area'); area.innerHTML = ''; 
+    selected.forEach(chk => {
+        const prod = DB.stock.find(s => s.code == chk.value);
+        if(prod){
+            const div = document.createElement('div'); div.className = 'label-item';
+            div.innerHTML = `<div style="font-size:12px; font-weight:bold;">${prod.name.substring(0,25)}</div><div style="font-size:28px; font-weight:900; margin: 5px 0;">$${prod.price.toFixed(2)}</div><svg class="barcode"></svg>`;
+            area.appendChild(div);
+            try { JsBarcode(div.querySelector('.barcode'), prod.code, { format: "CODE128", width: 2, height: 35, displayValue: true, fontSize: 12 }); } catch(e){}
         }
-    }
+    });
+    setTimeout(() => { document.body.classList.add('printing-labels'); window.print(); setTimeout(() => { document.body.classList.remove('printing-labels'); area.innerHTML = ''; }, 1000); }, 200);
 }
 
-a// REEMPLAZAR saveClient
+// --- CLIENTES ---
 async function saveClient(){
-    const idVal = document.getElementById('cli_id').value;
-    
-    const c = {
-        // Si el ID está vacío, mandamos null para que SQLite cree uno nuevo
-        id: idVal ? parseInt(idVal) : null, 
-        name: document.getElementById('cli_name').value.trim(),
-        dni: document.getElementById('cli_dni').value.trim(),
-        phone: document.getElementById('cli_phone').value.trim(),
-        address: document.getElementById('cli_address').value.trim(),
-        balance: parseFloat(document.getElementById('cli_balance').value)||0 
-    };
-
+    const c = { id: document.getElementById('cli_id').value || null, name: document.getElementById('cli_name').value.trim(), dni: document.getElementById('cli_dni').value.trim(), phone: document.getElementById('cli_phone').value, address: document.getElementById('cli_address').value, balance: parseFloat(document.getElementById('cli_balance').value)||0 };
     if(!c.name) return showToast("Nombre obligatorio", true);
-    
-    // Guardamos
-    await window.electronAPI.saveClient(c);
-    
-    // IMPORTANTE: Limpiamos todo INMEDIATAMENTE después de guardar
-    // para evitar que el próximo "Guardar" sobrescriba este mismo cliente.
-    resetClientForm();
-    
-    showToast("Cliente Guardado"); 
-    reloadData();
+    const res = await window.electronAPI.saveClient(c);
+    if(res.success) { resetClientForm(); showToast("Cliente Guardado"); reloadData(); } 
+    else { playBeep(); showToast(res.error, true); }
 }
+function resetClientForm(){ document.getElementById('cli_id').value=''; document.getElementById('cli_name').value=''; document.getElementById('cli_dni').value=''; document.getElementById('cli_phone').value=''; document.getElementById('cli_address').value=''; document.getElementById('cli_balance').value=''; document.getElementById('cli_name').focus(); }
 function renderClients(){
     const q = document.getElementById('searchClient').value.toLowerCase();
     const tbody = document.querySelector('#clientsTable tbody');
-    
-    // Fecha de hoy para comparar
-    const hoy = new Date();
-
-    tbody.innerHTML = DB.clients.filter(c => c.name.toLowerCase().includes(q)).map(c => {
-        // --- LÓGICA ALERTA 30 DÍAS ---
-        // Buscamos el último movimiento de este cliente
-        const lastMov = DB.movements.filter(m => m.client_id === c.id).pop(); // El ultimo
-        let alertaHtml = "";
-        
-        if(lastMov){
-            // Convertimos la fecha del movimiento (dd/mm/aaaa) a objeto Date
-            // Asumiendo formato local español: 15/12/2025
-            const parts = lastMov.date.split(',')[0].split('/');
-            // Ojo: Date espera (año, mes index 0, dia)
-            // Si tu fecha es dd/mm/yyyy:
-            const movDate = new Date(parts[2], parts[1]-1, parts[0]);
-            
-            const diffTime = Math.abs(hoy - movDate);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-            
-            if(diffDays > 30 && c.balance > 0){
-                alertaHtml = `<span style="color:var(--warning); font-size:12px; font-weight:bold"><i class="fas fa-history"></i> +30 días (${diffDays})</span>`;
-            }
-        }
-        // ------------------------------
-
-        return `
-<tr>
-    <td>
-        <strong>${c.name}</strong>
-        <br><small style="color:var(--text-muted)">DNI: ${c.dni || '-'}</small> ${alertaHtml}
-    </td>
-    <td>${c.phone}</td>
-    <td>${c.address}</td>
-    <td style="color:${c.balance>0?'var(--danger)':'var(--accent)'}; font-weight:bold">$${c.balance.toFixed(2)}</td>
-    <td>
-        <button class="btn secondary" onclick="openClientDetails(${c.id})" title="Ver Historial Detallado"><i class="fas fa-list"></i></button>
-        <button class="btn secondary" onclick="openPayBox(${c.id})" title="Registrar Pago"><i class="fas fa-hand-holding-usd"></i></button>
-        <button class="btn secondary" onclick="editClient(${c.id})"><i class="fas fa-edit"></i></button>
-    </td>
-</tr>`;
-    }).join('');
+    tbody.innerHTML = DB.clients.filter(c => c.name.toLowerCase().includes(q)).map(c => `<tr><td><strong>${c.name}</strong><br><small>DNI: ${c.dni||'-'}</small></td><td>${c.phone}</td><td>${c.address}</td><td style="color:${c.balance>0?'var(--danger)':'var(--accent)'}; font-weight:bold">$${c.balance.toFixed(2)}</td><td><button class="btn secondary" onclick="openClientDetails(${c.id})"><i class="fas fa-list"></i></button> <button class="btn secondary" onclick="openPayBox(${c.id})"><i class="fas fa-hand-holding-usd"></i></button> <button class="btn secondary" onclick="editClient(${c.id})"><i class="fas fa-edit"></i></button> <button class="btn-sm" style="color:red; margin-left:5px" onclick="deleteClient(${c.id})"><i class="fas fa-trash"></i></button></td></tr>`).join('');
 }
-
-function openPayBox(id){
-    clientToPay = DB.clients.find(x => x.id === id);
-    document.getElementById('paymentBox').style.display='block';
-    document.getElementById('lblDebt').innerText = '$' + clientToPay.balance.toFixed(2);
-    document.getElementById('payAmt').focus();
-}
-
-// AGREGAR AL FINAL DEL SCRIPT
-function resetClientForm(){
-    document.getElementById('cli_id').value = ''; // Borra el ID oculto
-    document.getElementById('cli_name').value = '';
-    document.getElementById('cli_dni').value = '';
-    document.getElementById('cli_phone').value = '';
-    document.getElementById('cli_address').value = '';
-    document.getElementById('cli_balance').value = '';
-    
-    // Poner el foco en el nombre para cargar el siguiente rápido
-    document.getElementById('cli_name').focus();
-}
-
+function openPayBox(id){ clientToPay = DB.clients.find(x => x.id === id); document.getElementById('paymentBox').style.display='block'; document.getElementById('lblDebt').innerText = '$' + clientToPay.balance.toFixed(2); document.getElementById('payAmt').focus(); }
+// REEMPLAZAR EN index.html
 async function processPayment(){
     const amt = parseFloat(document.getElementById('payAmt').value);
-    const method = document.getElementById('payMethodDebt').value; // Nuevo
+    
+    // Intentamos obtener el método, si falla el selector, forzamos "Efectivo"
+    const sel = document.getElementById('payMethodDebt');
+    const method = sel ? sel.value : 'Efectivo';
     
     if(!amt || amt <= 0) return showToast("Monto inválido", true);
-    if(!confirm(`¿Registrar pago de $${amt} en ${method}?`)) return;
 
-    // Guardamos el metodo dentro de la nota para no romper la base de datos vieja
-    // Ejemplo Nota: "Pago [Efectivo]"
-    const note = `Pago [${method}]`;
+    // Creamos la nota explícita
+    const notaFinal = `Pago [${method}]`;
 
-    await window.electronAPI.payDebt({clientId: clientToPay.id, amount: amt, note: note});
-    
-    showToast("Pago registrado");
-    document.getElementById('paymentBox').style.display='none';
-    document.getElementById('payAmt').value='';
-    reloadData();
-}
-
-// --- STOCK LOGIC ---
-function calcFromCost(){
-    const cost = parseFloat(document.getElementById('st_cost').value)||0;
-    const margin = parseFloat(document.getElementById('st_margin').value)||0;
-    if(margin) document.getElementById('st_price').value = (cost * (1 + margin/100)).toFixed(2);
-}
-function calcFromMargin(){
-    const cost = parseFloat(document.getElementById('st_cost').value)||0;
-    const margin = parseFloat(document.getElementById('st_margin').value)||0;
-    document.getElementById('st_price').value = (cost * (1 + margin/100)).toFixed(2);
-}
-function calcFromPrice(){
-    const cost = parseFloat(document.getElementById('st_cost').value)||0;
-    const price = parseFloat(document.getElementById('st_price').value)||0;
-    if(cost > 0) {
-        const margin = ((price - cost) / cost) * 100;
-        document.getElementById('st_margin').value = margin.toFixed(2);
+    if(confirm(`¿Registrar PAGO de $${amt} en ${method}?`)){
+        await window.electronAPI.payDebt({
+            clientId: clientToPay.id, 
+            amount: amt, 
+            note: notaFinal 
+        });
+        
+        showToast("Pago registrado");
+        document.getElementById('paymentBox').style.display='none';
+        document.getElementById('payAmt').value='';
+        
+        // Recargamos todo para ver el cambio
+        await reloadData();
     }
 }
+function fillClientSelect(){ const sel = document.getElementById('posClient'); sel.innerHTML = '<option value="">Consumidor Final</option>' + DB.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join(''); sel.onchange = () => { const c = DB.clients.find(x => x.id == sel.value); document.getElementById('clientDebtBadge').style.display = (c && c.balance>0) ? 'inline' : 'none'; if(c && c.balance>0) document.getElementById('clientDebtBadge').innerText=`Deuda: $${c.balance.toFixed(2)}`; }; }
 
+// --- STOCK ---
+function calcFromCost(){ const cost = parseFloat(document.getElementById('st_cost').value)||0; const margin = parseFloat(document.getElementById('st_margin').value)||0; document.getElementById('st_price').value = (cost * (1 + margin/100)).toFixed(2); }
+function calcFromMargin(){ calcFromCost(); }
+function calcFromPrice(){ const cost = parseFloat(document.getElementById('st_cost').value)||0; const price = parseFloat(document.getElementById('st_price').value)||0; if(cost>0) document.getElementById('st_margin').value = (((price-cost)/cost)*100).toFixed(2); }
 async function saveProduct(){
-    const code = document.getElementById('st_code').value;
+    const code = document.getElementById('st_code').value.trim();
     if(!code) return showToast("Código obligatorio", true);
-    
-    await window.electronAPI.saveProduct({
-        code, 
-        name: document.getElementById('st_name').value,
-        supplier: document.getElementById('st_prov').value,
-        // NUEVOS CAMPOS LENCERIA:
-        brand: document.getElementById('st_brand').value,
-        category: document.getElementById('st_cat').value,
-        subcategory: document.getElementById('st_sub').value,
-        size: document.getElementById('st_size').value,
-        color: document.getElementById('st_color').value,
-        // FIN NUEVOS
-        cost: parseFloat(document.getElementById('st_cost').value)||0,
-        margin: parseFloat(document.getElementById('st_margin').value)||0,
-        price: parseFloat(document.getElementById('st_price').value)||0,
-        qty: parseInt(document.getElementById('st_qty').value)||0
-    });
+    if (!isEditingStock) { const existe = DB.stock.find(p => p.code == code); if (existe) { playBeep(); return showToast("Código ya existe", true); } }
+    await window.electronAPI.saveProduct({ code, name: document.getElementById('st_name').value, supplier: document.getElementById('st_prov').value, brand: document.getElementById('st_brand').value, category: document.getElementById('st_cat').value, subcategory: document.getElementById('st_sub').value, size: document.getElementById('st_size').value, color: document.getElementById('st_color').value, cost: parseFloat(document.getElementById('st_cost').value)||0, margin: parseFloat(document.getElementById('st_margin').value)||0, price: parseFloat(document.getElementById('st_price').value)||0, qty: parseInt(document.getElementById('st_qty').value)||0 });
     clearSt(); reloadData(); showToast("Guardado");
 }
-function clearSt(){ ['st_code','st_name','st_prov','st_cost','st_margin','st_qty','st_price'].forEach(i=>document.getElementById(i).value=''); }
-
-document.getElementById('searchSt').addEventListener('input', renderStock);
-function editProd(c){
-    const s = DB.stock.find(x=>x.code===c);
-    document.getElementById('st_code').value=s.code; 
-    document.getElementById('st_name').value=s.name;
-    // Nuevos campos
-    document.getElementById('st_brand').value=s.brand||''; 
-    document.getElementById('st_cat').value=s.category||'';
-    document.getElementById('st_sub').value=s.subcategory||''; 
-    document.getElementById('st_size').value=s.size||'';
-    document.getElementById('st_color').value=s.color||''; 
-    // Fin nuevos
-    document.getElementById('st_prov').value=s.supplier;
-    document.getElementById('st_cost').value=s.cost; 
-    document.getElementById('st_margin').value=s.margin;
-    document.getElementById('st_price').value=s.price; 
-    document.getElementById('st_qty').value=s.qty;
-}// 1. Alternar visualmente los inputs
-function toggleBulkInput(){
-    const type = document.getElementById('bulk_type').value;
-    document.getElementById('bulk_prov').style.display = type === 'supplier' ? 'block' : 'none';
-    document.getElementById('bulk_cat_select').style.display = type === 'category' ? 'block' : 'none';
+function clearSt(){ isEditingStock=false; document.querySelectorAll('#tab-stock input').forEach(i=>i.value=''); document.getElementById('st_code').readOnly=false; document.getElementById('st_code').focus(); }
+function editProd(c){ isEditingStock=true; const s = DB.stock.find(x=>x.code===c); if(!s)return; document.getElementById('st_code').value=s.code; document.getElementById('st_code').readOnly=true; document.getElementById('st_name').value=s.name; document.getElementById('st_brand').value=s.brand; document.getElementById('st_cat').value=s.category; document.getElementById('st_sub').value=s.subcategory; document.getElementById('st_size').value=s.size; document.getElementById('st_color').value=s.color; document.getElementById('st_prov').value=s.supplier; document.getElementById('st_cost').value=s.cost; document.getElementById('st_margin').value=s.margin; document.getElementById('st_price').value=s.price; document.getElementById('st_qty').value=s.qty; showToast("Editando: "+s.name); }
+async function deleteProd(code){ if(confirm(`¿Eliminar ${code}?`)){ await window.electronAPI.deleteProduct(code); showToast("Eliminado"); reloadData(); } }
+async function bulkUpdate(){ 
+    const type=document.getElementById('bulk_type').value; const val=(type==='supplier'?document.getElementById('bulk_prov').value:document.getElementById('bulk_cat_select').value); const pct=parseFloat(document.getElementById('bulk_pct').value);
+    if(val && pct && confirm(`¿Aumentar ${pct}% a ${val}?`)){ await window.electronAPI.bulkUpdate({criteria:type, value:val, pct:pct}); reloadData(); showToast("Precios Actualizados"); }
 }
-
-// 2. Llenar los selectores (Actualizar updateProvList)
-function updateLists(){ 
-    if(!DB.stock) return;
-
-    // 1. Proveedores (Mantenemos lo que tenías)
-    const p = [...new Set(DB.stock.map(x=>x.supplier).filter(Boolean))].sort(); 
-    document.getElementById('provList').innerHTML = p.map(x=>`<option value="${x}">`).join(''); 
-    document.getElementById('bulk_prov').innerHTML = '<option value="">Elegir Proveedor...</option>' + p.map(x=>`<option value="${x}">${x}</option>`).join(''); 
-    
-    // 2. Marcas (Nuevo)
-    const marcas = [...new Set(DB.stock.map(x=>x.brand).filter(Boolean))].sort();
-    document.getElementById('listBrands').innerHTML = marcas.map(x=>`<option value="${x}">`).join('');
-
-    // 3. Categorías (Nuevo - Actualiza filtro y gestión)
-    const cats = [...new Set(DB.stock.map(x=>x.category).filter(Boolean))].sort();
-    // Lista para gestión
-    document.getElementById('listCats').innerHTML = cats.map(x=>`<option value="${x}">`).join('');
-    // Lista para Aumento Masivo
-    document.getElementById('bulk_cat_select').innerHTML = '<option value="">Elegir Categoría...</option>' + cats.map(x=>`<option value="${x}">${x}</option>`).join('');
-    // Lista para Filtro de Tabla (Arriba a la derecha)
-    const filterCat = document.getElementById('filterCat');
-    const currentFilter = filterCat.value; // Guardar selección actual
-    filterCat.innerHTML = '<option value="">Todas las Categorías</option>' + cats.map(x=>`<option value="${x}">${x}</option>`).join('');
-    filterCat.value = currentFilter;
-
-    // 4. Subcategorías (Nuevo)
+function updateLists(){
+    const brands = [...new Set(DB.stock.map(x=>x.brand).filter(Boolean))].sort(); document.getElementById('listBrands').innerHTML = brands.map(x=>`<option value="${x}">`).join('');
+    const cats = [...new Set(DB.stock.map(x=>x.category).filter(Boolean))].sort(); document.getElementById('listCats').innerHTML = cats.map(x=>`<option value="${x}">`).join(''); document.getElementById('bulk_cat_select').innerHTML = '<option value="">Elegir...</option>'+cats.map(x=>`<option value="${x}">${x}</option>`).join('');
+    const provs = [...new Set(DB.stock.map(x=>x.supplier).filter(Boolean))].sort(); document.getElementById('provList').innerHTML = provs.map(x=>`<option value="${x}">`).join(''); document.getElementById('bulk_prov').innerHTML = '<option value="">Elegir...</option>'+provs.map(x=>`<option value="${x}">${x}</option>`).join('');
     const subs = [...new Set(DB.stock.map(x=>x.subcategory).filter(Boolean))].sort();
     document.getElementById('listSubs').innerHTML = subs.map(x=>`<option value="${x}">`).join('');
+}
+function fillFilters(){
+    const selBrand = document.getElementById('filterBrand'); const selCat = document.getElementById('filterCat');
+    const brands = [...new Set(DB.stock.map(s => s.brand).filter(Boolean))].sort(); const cats = [...new Set(DB.stock.map(s => s.category).filter(Boolean))].sort();
+    selBrand.innerHTML = '<option value="">Todas las Marcas</option>' + brands.map(b => `<option value="${b}">${b}</option>`).join('');
+    selCat.innerHTML = '<option value="">Todas las Categorías</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+function renderStock(){
+    const q = document.getElementById('searchSt').value.toLowerCase(); const brandVal = document.getElementById('filterBrand').value; const catVal = document.getElementById('filterCat').value;
+    const tbody = document.querySelector('#stockTable tbody');
+    const filtered = DB.stock.filter(s => {
+        const terms = q.split(" ").filter(t => t.length > 0);
+        const productText = `${s.name} ${s.code} ${s.brand||''} ${s.category||''} ${s.color||''}`.toLowerCase();
+        return terms.every(term => productText.includes(term)) && (brandVal === "" || s.brand === brandVal) && (catVal === "" || s.category === catVal);
+    });
+    tbody.innerHTML = filtered.map(s=>`<tr><td style="text-align: center;"><input type="checkbox" class="stock-chk" value="${s.code}" style="width: 18px; height: 18px; cursor: pointer;"></td><td>${s.code}</td><td>${s.name} <small style="color:#888">${s.size||''} ${s.color||''}</small></td><td>${s.brand||'-'}</td><td>${s.category||'-'}</td><td>$${s.price.toFixed(2)}</td><td style="font-weight:bold; color:${s.qty<=0?'red':'lime'}">${s.qty}</td><td><button class="btn secondary" onclick="editProd('${s.code}')"><i class="fas fa-edit"></i></button> <button class="btn-sm" style="color:var(--danger);" onclick="deleteProd('${s.code}')"><i class="fas fa-trash"></i></button></td></tr>`).join('');
+}
+function toggleAllStock(src){ document.querySelectorAll('.stock-chk').forEach(c => c.checked = src.checked); }
+
+// --- ARQUEO ---
+function updateArqueo() {
+    console.log("--- ARQUEO FINAL CORREGIDO ---");
     
-    // 5. Filtro Marcas (Tabla)
-    const brandsList = [...new Set(DB.stock.map(x=>x.brand).filter(Boolean))].sort();
-    const filterBrand = document.getElementById('filterBrand');
-    const currentBrand = filterBrand.value;
-    filterBrand.innerHTML = '<option value="">Todas las Marcas</option>' + brandsList.map(x=>`<option value="${x}">${x}</option>`).join('');
-    filterBrand.value = currentBrand;
-}
+    // 1. OBTENER FECHA DE HOY
+    const now = new Date();
+    const hoyDia = now.getDate();      // Hoy es 6
+    const hoyMes = now.getMonth();     // Enero es 0
+    const hoyAnio = now.getFullYear(); // 2026
 
-// 3. La función de actualizar
-async function bulkUpdate(){ 
-    const type = document.getElementById('bulk_type').value; // 'supplier' o 'category'
-    const pct = parseFloat(document.getElementById('bulk_pct').value); 
-    
-    let value = "";
-    let label = "";
+    // --- COMPARADOR DE FECHAS BLINDADO ---
+    const esHoy = (fechaStr) => {
+        if (!fechaStr) return false;
+        
+        // Limpiamos la hora (nos quedamos solo con la fecha)
+        const fechaPura = fechaStr.split(',')[0].trim(); 
+        
+        // INTENTO 1: Javascript estándar
+        let d = new Date(fechaPura);
+        if (!isNaN(d.getTime())) {
+            // Si coincide día, mes y año exacto
+            if(d.getDate() === hoyDia && d.getMonth() === hoyMes && d.getFullYear() === hoyAnio) {
+                return true;
+            }
+        }
 
-    if(type === 'supplier'){
-        value = document.getElementById('bulk_prov').value;
-        label = "Proveedor " + value;
-    } else {
-        value = document.getElementById('bulk_cat_select').value;
-        label = "Categoría " + value;
-    }
+        // INTENTO 2: Fuerza bruta (invierte día/mes por si el formato es yanqui)
+        const partes = fechaPura.split('/');
+        if (partes.length === 3) {
+            // Opción A: Mes/Día/Año (Formato 1/6/2026)
+            const mesA = parseInt(partes[0]) - 1;
+            const diaA = parseInt(partes[1]);
+            const anioA = parseInt(partes[2]);
+            if (diaA === hoyDia && mesA === hoyMes && anioA === hoyAnio) return true;
 
-    if(value && pct && confirm(`¿Aumentar ${pct}% a todo: ${label}?`)){ 
-        await window.electronAPI.bulkUpdate({criteria: type, value: value, pct: pct}); 
-        await reloadData(); 
-        showToast("Precios Actualizados"); 
-    } 
-}
-async function exportStockCSV(){
-    if(DB.stock.length === 0) return showToast("No hay stock", true);
-    let csv = "CODIGO;PRODUCTO;PROVEEDOR;COSTO;MARGEN;PRECIO;STOCK\n";
-    DB.stock.forEach(s => { csv += `${s.code};${s.name};${s.supplier||''};${s.cost};${s.margin};${s.price};${s.qty}\n`; });
-    const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); link.download = "stock.csv"; link.click();
-}
-
-function backupSystem(){
-    const link = document.createElement("a");
-    const blob = new Blob([JSON.stringify(DB)], {type: "application/json"});
-    link.href = URL.createObjectURL(blob);
-    link.download = `backup_full_${new Date().toISOString().slice(0,10)}.json`;
-    link.click();
-}
-function restoreBackup() {
-    const input = document.getElementById('restoreFile');
-    if (input.files.length === 0) return showToast("Seleccione un archivo JSON primero", true);
-    const file = input.files[0];
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        try {
-            const jsonContent = e.target.result;
-            const data = JSON.parse(jsonContent);
-            if (!data.stock || !data.users) { alert("Error: Backup no válido."); return; }
-            if (!confirm("ADVERTENCIA: Se borrarán los datos actuales.\n\n¿Continuar?")) return;
-            showToast("Restaurando base de datos...", false);
-            const res = await window.electronAPI.restoreBackup(data);
-            if (res.success) { alert("¡Restauración Exitosa!"); location.reload(); } 
-            else { alert("Ocurrió un error: " + (res.error || "Desconocido")); }
-        } catch (err) { console.error(err); alert("Error: Archivo corrupto."); }
+            // Opción B: Día/Mes/Año (Formato 6/1/2026)
+            const diaB = parseInt(partes[0]);
+            const mesB = parseInt(partes[1]) - 1;
+            const anioB = parseInt(partes[2]);
+            if (diaB === hoyDia && mesB === hoyMes && anioB === hoyAnio) return true;
+        }
+        return false;
     };
-    reader.readAsText(file);
-}
-async function factoryReset(){ 
-    if(confirm("¡ATENCIÓN! \n\nEsto borrará TODO: Stock, Ventas, Caja y Usuarios.\n¿Estás 100% seguro?")){ 
-        localStorage.clear(); 
-        const res = await window.electronAPI.factoryReset();
-        if(res.success){ alert("Sistema formateado."); location.reload(); } else { alert("Error al borrar."); }
-    } 
-}
-function updateArqueo(){
-    let cash=0, dig=0, cta=0; 
-    const todayStr = new Date().toLocaleString().split(',')[0];
-    
-    // 1. Sumamos las VENTAS directas
-    DB.sales.forEach(s=>{ 
-        if(s.date.startsWith(todayStr)) {
-             if(s.payment==='Efectivo') cash+=s.total; 
-             else if(s.payment==='Cuenta Corriente') cta+=s.total;
-             else dig+=s.total; 
+
+    let salesCash=0, salesDig=0, salesCta=0;
+    let paymentsCash=0, paymentsDig=0;
+    let expCash=0, expDig=0;
+
+    // --- A. PROCESAR VENTAS ---
+    (DB.sales || []).forEach(s => {
+        if (esHoy(s.date)) {
+            const t = parseFloat(s.total) || 0;
+            const metodo = (s.payment || "").toLowerCase();
+
+            if (metodo.includes('efectivo')) salesCash += t;
+            else if (metodo.includes('cuenta') || metodo.includes('cta')) salesCta += t;
+            else salesDig += t;
         }
     });
 
-    // 2. Sumamos los PAGOS DE DEUDA (Nuevo)
-    // Filtramos movimientos de hoy que sean de tipo 'PAGO'
-    DB.movements.forEach(m => {
-        if(m.date.startsWith(todayStr) && m.type === 'PAGO'){
-            // Leemos la nota para ver si fue efectivo o digital
-            // Formato esperado: "Pago [Efectivo]"
-            if(m.note.includes('[Efectivo]')){
-                cash += m.amount;
-            } else {
-                dig += m.amount; // Transferencia, debito, etc va a digital
+    // --- B. PROCESAR PAGOS DE DEUDA ---
+    (DB.movements || []).forEach(m => {
+        if (m.type === 'PAGO') {
+            // ACÁ ESTABA EL ERROR: Faltaba esta línea
+            const esDeHoy = esHoy(m.date); 
+            
+            if (esDeHoy) {
+                const monto = parseFloat(m.amount) || 0;
+                const nota = (m.note || "").toLowerCase();
+                
+                if (nota.includes('efectivo')) paymentsCash += monto;
+                else paymentsDig += monto;
             }
         }
     });
-    
-    document.getElementById('sys_cash').innerText=`$${cash.toFixed(2)}`;
-    document.getElementById('sys_dig').innerText=`$${dig.toFixed(2)}`;
-    document.getElementById('sys_cta').innerText=`$${cta.toFixed(2)}`;
-    document.getElementById('sys_total').innerText=`$${(cash+dig+cta).toFixed(2)}`; // Total global movido
-    
-    // Tabla historial ventas (mantenemos igual)
-    document.querySelector('#historyTable tbody').innerHTML = DB.sales.slice().reverse().slice(0,10).map(s=>`<tr><td>${s.date.split(',')[1]}</td><td>$${s.total.toFixed(2)}</td><td>${s.payment}</td></tr>`).join('');
-    
-    calcCash();
+
+    // --- C. PROCESAR GASTOS ---
+    (DB.expenses || []).forEach(e => {
+        if (esHoy(e.date)) {
+            const t = parseFloat(e.amount) || 0;
+            const metodo = (e.method || "").toLowerCase();
+            if (metodo.includes('efectivo')) expCash += t;
+            else expDig += t;
+        }
+    });
+
+    // --- RESULTADOS ---
+    const totalEntradaEfectivo = salesCash + paymentsCash;
+    const totalSalidaEfectivo = expCash;
+    const debeHaberEnCaja = totalEntradaEfectivo - totalSalidaEfectivo;
+
+    const totalDigital = (salesDig + paymentsDig) - expDig;
+    const totalVendidoBruto = salesCash + salesDig + salesCta;
+
+    console.log("Valores calculados:", { 
+        Caja: debeHaberEnCaja, 
+        Digital: totalDigital, 
+        TotalVentas: totalVendidoBruto 
+    });
+
+    // Renderizado en pantalla
+    if(document.getElementById('sys_cash_in')) {
+        document.getElementById('sys_cash_in').innerText = `$${totalEntradaEfectivo.toFixed(2)}`;
+        document.getElementById('sys_cash_out').innerText = `$${totalSalidaEfectivo.toFixed(2)}`;
+        document.getElementById('sys_cash').innerText = `$${debeHaberEnCaja.toFixed(2)}`;
+        document.getElementById('sys_dig').innerText = `$${totalDigital.toFixed(2)}`;
+        document.getElementById('sys_total').innerText = `$${totalVendidoBruto.toFixed(2)}`;
+    }
+
+    // --- TABLA DE HISTORIAL (Últimos 10) ---
+    let historyList = [];
+    (DB.sales || []).forEach(s => {
+        // Opcional: Si querés ver solo lo de hoy en la tabla, agregá "if (esHoy(s.date))"
+        historyList.push({ id: s.id, time: s.date.split(',')[1] || s.date, desc: "Venta", info: s.payment, amount: s.total, isSale: true });
+    });
+    (DB.movements || []).forEach(m => {
+        if (m.type === 'PAGO') {
+             historyList.push({ id: m.id, time: m.date.split(',')[1] || m.date, desc: "Cobro Deuda", info: m.note, amount: m.amount, isSale: false });
+        }
+    });
+
+    historyList.sort((a, b) => b.id - a.id);
+    const ultimos10 = historyList.slice(0, 10);
+
+    const tbody = document.querySelector('#historyTable tbody');
+    if(tbody){
+        tbody.innerHTML = ultimos10.map(item => {
+            const color = item.isSale ? 'var(--text-main)' : 'var(--accent)';
+            const icon = item.isSale ? '<i class="fas fa-cash-register"></i>' : '<i class="fas fa-hand-holding-usd"></i>';
+            return `<tr>
+                <td style="font-size:13px">${item.time}</td>
+                <td style="font-size:13px">${icon} ${item.desc} <br><small style="opacity:0.7">${item.info}</small></td>
+                <td style="font-weight:bold; color:${color}">$${parseFloat(item.amount).toFixed(2)}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    // Actualizar diferencia física si existe la función
+    if(typeof calcCash === 'function') calcCash();
 }
-function calcCash(){
-    let tot=0; document.querySelectorAll('.bill-input').forEach(i=>{ tot += (parseFloat(i.dataset.val)*(parseFloat(i.value)||0)); });
-    document.getElementById('counted_total').innerText=`$${tot.toFixed(2)}`;
-    const dif = tot - parseFloat(document.getElementById('sys_cash').innerText.replace('$',''));
-    const vb=document.getElementById('verdictBox');
-    document.getElementById('diffAmount').innerText=`$${Math.abs(dif).toFixed(2)}`;
-    vb.style.display='block';
-    if(Math.abs(dif)<10) { vb.className='verdict-box verdict-ok'; document.getElementById('diffText').innerText="CAJA PERFECTA"; }
-    else if(dif>0) { vb.className='verdict-box verdict-ok'; document.getElementById('diffText').innerText="SOBRANTE"; }
-    else { vb.className='verdict-box verdict-bad'; document.getElementById('diffText').innerText="FALTANTE"; }
+function calcCash() {
+    let totalFisico = 0;
+    document.querySelectorAll('.bill-input').forEach(input => { totalFisico += (parseFloat(input.dataset.val) * (parseFloat(input.value) || 0)); });
+    document.getElementById('counted_total').innerText = `$${totalFisico.toFixed(2)}`;
+    const sysVal = parseFloat(document.getElementById('sys_cash').innerText.replace('$','').trim()) || 0;
+    const diff = totalFisico - sysVal;
+    const verdictBox = document.getElementById('verdictBox');
+    verdictBox.style.display = 'block';
+    if (Math.abs(diff) < 1) { verdictBox.className = "verdict-box verdict-ok"; document.getElementById('diffAmount').innerText = "CAJA PERFECTA"; document.getElementById('diffText').innerText = "Coincide con el sistema"; } 
+    else if (diff > 0) { verdictBox.className = "verdict-box verdict-ok"; document.getElementById('diffAmount').innerText = `Sobran $${diff.toFixed(2)}`; document.getElementById('diffText').innerText = "Posible venta no registrada"; } 
+    else { verdictBox.className = "verdict-box verdict-bad"; document.getElementById('diffAmount').innerText = `Faltan $${Math.abs(diff).toFixed(2)}`; document.getElementById('diffText').innerText = "Revisar cambios o gastos no anotados"; }
 }
+// REEMPLAZAR saveClosure EN index.html
 async function saveClosure(){
-    if(!confirm("¿Cerrar Caja y Generar Excel?")) return;
-    let det={}; let real=0;
-    document.querySelectorAll('.bill-input').forEach(i=>{ if(i.value>0) { det[`$${i.dataset.val}`]=i.value; real+=(i.dataset.val*i.value); } });
+    if(!confirm("¿Cerrar caja y generar reporte?")) return;
+    
     const sys = parseFloat(document.getElementById('sys_cash').innerText.replace('$',''));
-    const diff = real - sys;
+    const real = parseFloat(document.getElementById('counted_total').innerText.replace('$',''));
     
-    const clos = { date: new Date().toLocaleString(), user: currentUser.name, sysCash: sys, realCash: real, diff: diff, status: diff>=0?"OK":"FALTA", details: det };
-    await window.electronAPI.saveClosure(clos);
+    // --- ESTO ES LO NUEVO: Capturamos el detalle de los billetes ---
+    let detalleBilletes = {};
+    document.querySelectorAll('.bill-input').forEach(input => {
+        const val = input.value;
+        const denom = input.dataset.val; // 1000, 500, 200...
+        if(val && val > 0) {
+            detalleBilletes[`$${denom}`] = val; // Ej: {"$1000": "5", "$500": "2"}
+        }
+    });
+    // -------------------------------------------------------------
+
+    await window.electronAPI.saveClosure({ 
+        date: new Date().toLocaleString(), 
+        user: currentUser.name, 
+        sysCash: sys, 
+        realCash: real, 
+        diff: real-sys, 
+        status: 'Cerrado', 
+        details: detalleBilletes // Aquí enviamos el objeto lleno
+    });
     
-    // EXCEL
-    const todayStr = new Date().toLocaleString().split(',')[0];
-    const ventasHoy = DB.sales.filter(s => s.date.startsWith(todayStr));
-    const r = await window.electronAPI.exportarExcel({ventas: ventasHoy, cierres: DB.closures});
-
-    if(r.success) showToast("Cierre OK - Excel Guardado"); 
-    else showToast("Cierre OK - Error Excel: " + r.error, true);
-
-    await reloadData(); document.querySelectorAll('.bill-input').forEach(i=>i.value=''); calcCash();
+    await window.electronAPI.exportarExcel({ventas: DB.sales, cierres: DB.closures});
+    alert("Cierre Guardado y Excel Generado");
+    // Opcional: Recargar para limpiar
+    location.reload();
 }
-async function downloadExcel(){
-    if(DB.sales.length===0 && DB.closures.length===0) return showToast("Sin datos", true);
-    showToast("Generando Excel...", false);
-    const r = await window.electronAPI.exportarExcel({ventas: DB.sales, cierres: DB.closures});
-    if(r.success) showToast("Guardado OK"); else showToast("Error/Cancelado", true);
-}
-
-// --- NUEVA LÓGICA DE FILTROS Y PROMOS ---
-
-// 1. Llenar los selectores de Stock dinámicamente
-function fillFilters(){
-    // Extraer marcas únicas
-    const brands = [...new Set(DB.stock.map(s => s.brand).filter(Boolean))].sort();
-    const cats = [...new Set(DB.stock.map(s => s.category).filter(Boolean))].sort();
-    
-    const selBrand = document.getElementById('filterBrand');
-    const selCat = document.getElementById('filterCat');
-    
-    // Guardar selección actual para no perderla al recargar
-    const curBrand = selBrand.value;
-    const curCat = selCat.value;
-
-    selBrand.innerHTML = '<option value="">Todas las Marcas</option>' + brands.map(b => `<option value="${b}">${b}</option>`).join('');
-    selCat.innerHTML = '<option value="">Todas las Categorías</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
-
-    selBrand.value = curBrand;
-    selCat.value = curCat;
+function openExpenseModal(){ document.getElementById('expense-overlay').classList.add('active'); document.getElementById('exp_desc').value=''; document.getElementById('exp_amount').value=''; document.getElementById('exp_desc').focus(); }
+async function confirmExpense(){
+    const desc = document.getElementById('exp_desc').value; const amount = parseFloat(document.getElementById('exp_amount').value); const method = document.getElementById('exp_method').value;
+    if(!desc || !amount) return showToast("Faltan datos", true);
+    await window.electronAPI.saveExpense({ date: new Date().toLocaleString(), description: desc, amount: amount, method: method, user: currentUser.name });
+    document.getElementById('expense-overlay').classList.remove('active'); reloadData(); showToast("Gasto Registrado");
 }
 
-function clearFilters(){
-    document.getElementById('searchSt').value = '';
-    document.getElementById('filterBrand').value = '';
-    document.getElementById('filterCat').value = '';
-    renderStock();
+// --- UTILS MODALES ---
+function downloadLabelsPDF() {
+    // 1. Verificamos selección
+    const selected = document.querySelectorAll('.stock-chk:checked');
+    if(selected.length === 0) return showToast("Seleccione productos primero", true);
+    
+    // 2. Preparamos el área oculta
+    const area = document.getElementById('labels-area');
+    area.innerHTML = ''; 
+    
+    // IMPORTANTE: Para que html2pdf funcione, el elemento debe ser visible momentáneamente
+    // Lo hacemos visible pero fuera de la pantalla o con z-index bajo si es necesario, 
+    // pero html2pdf suele manejarlo bien si le damos display block.
+    area.style.display = 'grid'; 
+    area.style.gridTemplateColumns = 'repeat(3, 1fr)'; // Formato de grilla para el PDF
+    area.style.gap = '15px';
+    area.style.padding = '20px';
+    area.style.background = 'white';
+    area.style.position = 'absolute';
+    area.style.top = '0';
+    area.style.left = '0';
+    area.style.zIndex = '-100'; // Detrás de todo para que no se vea feo
+    
+    // 3. Generamos las etiquetas HTML
+    selected.forEach(chk => {
+        const prod = DB.stock.find(s => s.code == chk.value);
+        if(prod){
+            const div = document.createElement('div'); 
+            div.className = 'label-item';
+            // Estilos inline para asegurar que salgan en el PDF
+            div.style.border = '1px dashed #ccc';
+            div.style.padding = '10px';
+            div.style.textAlign = 'center';
+            div.style.height = '140px';
+            div.style.display = 'flex';
+            div.style.flexDirection = 'column';
+            div.style.alignItems = 'center';
+            div.style.justifyContent = 'center';
+            div.style.color = 'black';
+            div.style.pageBreakInside = 'avoid';
+
+            div.innerHTML = `
+                <div style="font-size:12px; font-weight:bold; overflow:hidden; height:15px;">${prod.name.substring(0,25)}</div>
+                <div style="font-size:28px; font-weight:900; margin: 5px 0;">$${prod.price.toFixed(2)}</div>
+                <svg class="barcode"></svg>
+            `;
+            area.appendChild(div);
+            
+            try { 
+                JsBarcode(div.querySelector('.barcode'), prod.code, { 
+                    format: "CODE128", width: 2, height: 35, displayValue: true, fontSize: 12, margin:0 
+                }); 
+            } catch(e){}
+        }
+    });
+
+    // 4. Configuración del PDF
+    const opt = {
+      margin:       10, // Margen en mm
+      filename:     `Etiquetas_${new Date().toLocaleDateString().replace(/\//g,'-')}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true }, // Scale 2 mejora la calidad de las letras
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // 5. Generar y Guardar
+    showToast("Generando PDF...", false);
+    
+    // Usamos una promesa para dar tiempo al renderizado de los códigos de barra
+    setTimeout(() => {
+        html2pdf().set(opt).from(area).save().then(() => {
+            area.innerHTML = ''; // Limpiamos
+            area.style.display = 'none'; // Ocultamos de nuevo
+            showToast("PDF Descargado");
+        }).catch(err => {
+            console.error(err);
+            showToast("Error al generar PDF", true);
+            area.style.display = 'none';
+        });
+    }, 500); // Esperamos medio segundo para asegurar que el SVG se renderizó
+}
+function openManualModal(){ document.getElementById('manual-overlay').classList.add('active'); setTimeout(()=>document.getElementById('man_desc').focus(),100); }
+function confirmManual(){ const d=document.getElementById('man_desc').value||"Varios"; const p=parseFloat(document.getElementById('man_price').value); if(p){ addItemToCart(d+" (Manual)", 1, p, "MAN", true); document.getElementById('manual-overlay').classList.remove('active'); } }
+function openReturnModal(){ document.getElementById('return-overlay').classList.add('active'); document.getElementById('return_input').value=''; setTimeout(()=>document.getElementById('return_input').focus(),100); }
+function confirmReturnModal(){ const val = document.getElementById('return_input').value.trim(); if(!val)return; document.getElementById('scanInput').value = val; document.getElementById('return-overlay').classList.remove('active'); manualScan(-1); }
+function openClientDetails(id){ const c = DB.clients.find(x => x.id === id); if(!c) return; document.getElementById('detailClientName').innerText = `Ficha: ${c.name}`; document.getElementById('client-detail-overlay').classList.add('active'); const movs = DB.movements.filter(m => m.client_id === id).reverse(); document.querySelector('#clientHistoryTable tbody').innerHTML = movs.map(m => `<tr><td>${m.date}</td><td>${m.type}</td><td>${m.note}</td><td>-</td><td style="color:${m.type==='DEUDA'?'red':'lime'}">$${m.amount.toFixed(2)}</td></tr>`).join(''); }
+function editClient(id){ const c = DB.clients.find(x => x.id === id); document.getElementById('cli_id').value = c.id; document.getElementById('cli_name').value = c.name; document.getElementById('cli_dni').value = c.dni || ''; document.getElementById('cli_phone').value = c.phone; document.getElementById('cli_address').value = c.address; }
+async function deleteClient(id){ if(confirm("¿Eliminar cliente?")){ const res=await window.electronAPI.deleteClient(id); if(res.success)reloadData(); else alert(res.error); } }
+async function backupSystem(){ const link = document.createElement("a"); const blob = new Blob([JSON.stringify(DB)], {type: "application/json"}); link.href = URL.createObjectURL(blob); link.download = `backup_${new Date().toISOString().slice(0,10)}.json`; link.click(); }
+async function restoreBackup() { const input = document.getElementById('restoreFile'); if (input.files.length === 0) return alert("Seleccione JSON"); const file = input.files[0]; const reader = new FileReader(); reader.onload = async function(e) { try { const data = JSON.parse(e.target.result); if(confirm("¿Sobrescribir TODO?")) { await window.electronAPI.restoreBackup(data); location.reload(); } } catch(err){alert("Error Archivo");} }; reader.readAsText(file); }
+async function factoryReset(){ if(confirm("¿BORRAR TODO EL SISTEMA?")){ await window.electronAPI.factoryReset(); location.reload(); } }
+function addUser(){ const n=document.getElementById('u_name').value, p=document.getElementById('u_pin').value; if(n&&p) { window.electronAPI.addUser({name:n, pin:p}).then(()=>{reloadData(); document.getElementById('u_name').value='';}); } }
+function renderUsers(){ document.querySelector('#usersTable tbody').innerHTML=DB.users.map(u=>`<tr><td>${u.name}</td><td>****</td><td></td></tr>`).join(''); }
+function showToast(m,e=false){ const t=document.getElementById('toast'); t.innerHTML= e ? `<i class="fas fa-exclamation-triangle"></i> ${m}` : `<i class="fas fa-check-circle"></i> ${m}`; t.className=e?'toast show error':'toast show'; setTimeout(()=>t.className='toast',3000); }
+// --- 1. FUNCIÓN PARA EXPORTAR STOCK (CSV/EXCEL) ---
+function exportStockCSV(){
+    if(DB.stock.length === 0) return showToast("No hay stock para exportar", true);
+    
+    // Encabezados del archivo
+    let csv = "CODIGO;PRODUCTO;MARCA;CATEGORIA;COSTO;PRECIO;STOCK\n";
+    
+    // Recorremos los productos y llenamos las filas
+    DB.stock.forEach(s => {
+        csv += `${s.code};${s.name};${s.brand||''};${s.category||''};${s.cost};${s.price};${s.qty}\n`;
+    });
+    
+    // Truco para descargar el archivo
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Stock_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
+    link.click();
+    showToast("Descarga iniciada");
 }
 
-// 2. Sobrescribir renderStock para que use los filtros nuevos
-function renderStock(){
-    const q = document.getElementById('searchSt').value.toLowerCase();
-    const brandVal = document.getElementById('filterBrand').value;
-    const catVal = document.getElementById('filterCat').value;
-
-    const tbody = document.querySelector('#stockTable tbody');
-    
-    // REEMPLAZAR DENTRO DE function renderStock()
-const filtered = DB.stock.filter(s => {
-    // 1. Separamos lo que escribió el usuario en palabras (ej: "selu rojo" -> ["selu", "rojo"])
-    const terms = q.split(" ").filter(t => t.length > 0);
-    
-    // 2. Unimos todo el texto del producto para buscar ahí
-    const productText = `${s.name} ${s.code} ${s.brand||''} ${s.category||''} ${s.color||''}`.toLowerCase();
-
-    // 3. Verificamos que TODAS las palabras escritas estén en el producto
-    const matchText = terms.every(term => productText.includes(term));
-
-    const matchBrand = brandVal === "" || s.brand === brandVal;
-    const matchCat = catVal === "" || s.category === catVal;
-    
-    return matchText && matchBrand && matchCat;
-});
-
-    tbody.innerHTML = filtered.map(s=>`
-        <tr>
-            <td>${s.code}</td>
-            <td>${s.name} <small style="color:#888">${s.size||''} ${s.color||''}</small></td>
-            <td>${s.brand || '-'}</td>
-            <td>${s.category || '-'}</td>
-            <td>$${s.price.toFixed(2)}</td>
-            <td style="font-weight:bold; color:${s.qty<=0?'red':'lime'}">${s.qty}</td>
-            <td><button class="btn secondary" onclick="editProd('${s.code}')">Editar</button></td>
-<td>
-    <button class="btn secondary" onclick="editProd('${s.code}')"><i class="fas fa-edit"></i></button>
-    <button class="btn-sm" style="color:var(--danger); border-color:var(--danger); margin-left:5px;" onclick="deleteProd('${s.code}')"><i class="fas fa-trash"></i></button>
-</td>
-            </tr>
-    `).join('');
-}
-
-// 3. Lógica de Promoción "Tarjeta Tomate" (Martes 5%)
-function checkPromos(){
-    const cardInput = document.getElementById('cardName');
-    const today = new Date().getDay(); // 0=Dom, 1=Lun, 2=Martes...
-    const isTuesday = (today === 2); 
-    const isTomate = cardInput.value.toLowerCase().includes('tomate');
-
-    const promoBadge = document.getElementById('promoBadge');
-    const discountInput = document.getElementById('discountAmt');
-
-    // Solo aplicamos si es Martes Y es Tarjeta Tomate
-    if(isTuesday && isTomate){
-        // Calculamos el subtotal actual
-        let subtotal = currentCart.reduce((a,b)=>a+b.subtotal, 0);
-        
-        // Calculamos el 5%
-        const discountVal = subtotal * 0.05;
-        
-        // Aplicamos al input de descuento
-        discountInput.value = discountVal.toFixed(2);
-        
-        promoBadge.style.display = 'block';
-    } else {
-        // Opcional: Si borra "Tomate", ¿sacamos el descuento?
-        // Por ahora lo dejamos manual para no ser invasivos, o lo ocultamos:
-        promoBadge.style.display = 'none';
-    }
-    
-    // Recalcular total final visualmente
-    calcTotalFinal();
-}
-
-// --- LÓGICA DE VENTANA DE DEVOLUCIÓN ---
-
-function openReturnModal(){
-    // 1. Si ya escribió algo en el scanner principal, usar eso directo
-    const mainInput = document.getElementById('scanInput');
-    if(mainInput.value.trim().length > 0){
-        manualScan(-1); // Usa la lógica normal
-        return;
-    }
-    
-    // 2. Si está vacío, abrir la ventana roja
-    document.getElementById('return-overlay').style.display = 'flex';
-    document.getElementById('return_input').value = '';
-    setTimeout(() => document.getElementById('return_input').focus(), 100);
-}
-
-function editClient(id){
-    const c = DB.clients.find(x => x.id === id);
-    document.getElementById('cli_id').value = c.id;
-    document.getElementById('cli_name').value = c.name;
-    document.getElementById('cli_dni').value = c.dni || '';
-    document.getElementById('cli_phone').value = c.phone;
-    document.getElementById('cli_address').value = c.address;
-    // No cargamos el balance para no editarlo manual por error, eso se maneja con pagos/ventas
-}
-
-function confirmReturnModal(){
-    const val = document.getElementById('return_input').value.trim();
-    if(!val) return showToast("Ingrese un dato", true);
-    
-    // Usamos el input principal como puente para reutilizar la lógica de búsqueda
-    document.getElementById('scanInput').value = val;
-    document.getElementById('return-overlay').style.display = 'none';
-    
-    // Ejecutamos la devolución
-    manualScan(-1);
-}
-
-async function deleteProd(code){
-    if(confirm(`¿Estás seguro de eliminar el producto código: ${code}?`)){
-        await window.electronAPI.deleteProduct(code);
-        showToast("Producto eliminado");
-        reloadData();
-    }
-}
-
+// --- 2. FUNCIÓN FILTRO BAJO STOCK (<= 5) ---
 function filterLowStock(){
-    const tbody = document.querySelector('#stockTable tbody');
-    // Filtramos solo los que tienen 5 o menos
-    const lowStock = DB.stock.filter(s => s.qty <= 5);
+    // Filtramos en memoria los que tienen 5 o menos
+    const low = DB.stock.filter(s => s.qty <= 5);
     
-    if(lowStock.length === 0) return showToast("¡Todo el stock está saludable! (+5)");
-
-    // Usamos el mismo render pero forzado
-    tbody.innerHTML = lowStock.map(s=>`
-        <tr style="background:rgba(239,68,68,0.1)"> <td>${s.code}</td>
-            <td>${s.name} <small>${s.size||''} ${s.color||''}</small></td>
-            <td>${s.brand || '-'}</td>
-            <td>${s.category || '-'}</td>
+    if(low.length === 0) return showToast("¡Todo el stock está saludable! (+5)");
+    
+    // Obtenemos la tabla y la pintamos de rojo
+    const tbody = document.querySelector('#stockTable tbody');
+    tbody.innerHTML = low.map(s=>`
+        <tr style="background:rgba(239,68,68,0.15)">
+            <td style="text-align: center;">
+                <input type="checkbox" class="stock-chk" value="${s.code}" style="width: 18px; height: 18px; cursor: pointer;">
+            </td>
+            <td>${s.code}</td>
+            <td>${s.name} <small style="color:#ddd">${s.size||''} ${s.color||''}</small></td>
+            <td>${s.brand||'-'}</td>
+            <td>${s.category||'-'}</td>
             <td>$${s.price.toFixed(2)}</td>
-            <td style="font-weight:bold; color:var(--danger); font-size:18px">${s.qty}</td> <td>
+            <td style="font-weight:bold; color:var(--danger); font-size:18px">${s.qty}</td>
+            <td>
                 <button class="btn secondary" onclick="editProd('${s.code}')"><i class="fas fa-edit"></i></button>
-                <button class="btn-sm" style="color:var(--danger); border-color:var(--danger); margin-left:5px" onclick="deleteProd('${s.code}')"><i class="fas fa-trash"></i></button>
+                <button class="btn-sm" style="color:var(--danger); border-color:var(--danger); margin-left:5px;" onclick="deleteProd('${s.code}')"><i class="fas fa-trash"></i></button>
             </td>
         </tr>
     `).join('');
     
-    showToast(`Mostrando ${lowStock.length} artículos críticos`);
+    showToast(`ATENCIÓN: ${low.length} productos con stock crítico`);
 }
 
-async function addUser(){ const n=document.getElementById('u_name').value, p=document.getElementById('u_pin').value; if(n&&p) { await window.electronAPI.addUser({name:n, pin:p}); await reloadData(); document.getElementById('u_name').value=''; } }
-function renderUsers(){ document.querySelector('#usersTable tbody').innerHTML=DB.users.map(u=>`<tr><td>${u.name}</td><td>****</td><td></td></tr>`).join(''); }
-function toggleFiscal(){ document.getElementById('fiscalInputs').style.display=document.getElementById('checkFiscal').checked?'flex':'none'; }
-function showToast(m,e=false){ const t=document.getElementById('toast'); t.innerHTML= e ? `<i class="fas fa-exclamation-triangle"></i> ${m}` : `<i class="fas fa-check-circle"></i> ${m}`; t.className=e?'toast show error':'toast show'; setTimeout(()=>t.className='toast',3000); }
-function openClientDetails(clientId){
-    const c = DB.clients.find(x => x.id === clientId);
-    if(!c) return;
-
-    document.getElementById('detailClientName').innerText = `Ficha: ${c.name}`;
-    document.getElementById('client-detail-overlay').style.display = 'flex';
-
-    // Filtramos movimientos del cliente
-    const movs = DB.movements.filter(m => m.client_id === clientId).reverse(); // Mas nuevo primero
-
-    const tbody = document.querySelector('#clientHistoryTable tbody');
-    tbody.innerHTML = movs.map(m => {
-        let detalle = m.note;
-        let vendedor = "-";
-        
-        // Si es una compra, intentamos enriquecer la info buscando la venta real
-        // La nota suele ser "Compra #123123123"
-        if(m.type === 'DEUDA' && m.note.includes('Compra #')){
-            const saleId = m.note.split('#')[1];
-            // Buscamos la venta en DB.sales (Ojo: los IDs son numeros o strings, comparamos flexible)
-            const sale = DB.sales.find(s => s.id == saleId);
-            
-            if(sale){
-    vendedor = sale.seller || 'Admin';
+// --- 3. FUNCIÓN EXCEL DE CIERRE DE CAJA ---
+async function downloadExcel(){
+    if(DB.sales.length === 0 && DB.closures.length === 0) return showToast("No hay movimientos para exportar", true);
     
-    // --- NUEVO: Detectar Tarjeta ---
-    if(sale.card_name){
-        // Agregamos el nombre de la tarjeta al detalle visual
-        detalle += `<br><span style="color:#fbbf24; font-size:11px"><i class="fas fa-credit-card"></i> ${sale.card_name}</span>`;
-    }
-    // -------------------------------
-
-    if(sale.items && Array.isArray(sale.items)){
-        detalle += sale.items.map(i => `<div style="font-size:12px">• ${i.qty}x ${i.name}</div>`).join('');
+    showToast("Generando Excel...", false);
+    
+    // Llamamos a la función que ya existe en main.js
+    const r = await window.electronAPI.exportarExcel({ventas: DB.sales, cierres: DB.closures});
+    
+    if(r.success) {
+        showToast("¡Excel Guardado en Documentos!");
+    } else {
+        alert("Error al crear Excel: " + r.error);
     }
 }
-        }
-
-        // Color del monto según si suma deuda o resta
-        const color = m.type === 'DEUDA' ? 'var(--danger)' : 'var(--accent)';
-        const icon = m.type === 'DEUDA' ? '<i class="fas fa-shopping-bag"></i>' : '<i class="fas fa-money-bill"></i>';
-
-        return `
-            <tr>
-                <td>${m.date}</td>
-                <td>${icon} ${m.type}</td>
-                <td>${detalle}</td>
-                <td>${vendedor}</td>
-                <td style="color:${color}; font-weight:bold">$${m.amount.toFixed(2)}</td>
-            </tr>
-        `;
-    }).join('');
-}
-
-
 </script>
 </body>
 </html>
