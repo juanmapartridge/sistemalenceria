@@ -725,7 +725,9 @@
                             <th>Tipo</th>
                             <th>Detalle</th>
                             <th>Vendedor</th>
-                            <th>Monto</th>
+                            <th>Entrada/Debe</th>
+                            <th>Salidas/Haber</th>
+                            <th>Saldo/Total</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -2001,12 +2003,6 @@
             const cliId = cliIdVal ? parseInt(cliIdVal) : null;
             const obs = document.getElementById('sale_obs').value.trim();
 
-            // Alerta Lencería
-            const hayBombachas = currentCart.some(i => (i.name.toLowerCase().includes('bombacha') || i.name.toLowerCase().includes('tang')) && i.qty > 0);
-            if (hayBombachas) {
-                const ok = await htmlConfirm('👙 ATENCIÓN: Ropa interior NO TIENE CAMBIO. ¿Avisaste?');
-                if (!ok) { document.getElementById('scanInput').focus(); return; }
-            }
 
             if (total < 0) {
                 // Solo forzar Cuenta Corriente si el total negativo NO proviene únicamente de ítems manuales
@@ -2663,7 +2659,20 @@
             if (!c) return; 
             document.getElementById('detailClientName').innerText = `Ficha: ${c.name}`; 
             document.getElementById('client-detail-overlay').classList.add('active'); 
-            const movs = DB.movements.filter(m => m.client_id === id).reverse(); 
+            const rawMovs = DB.movements.filter(m => m.client_id === id).reverse(); 
+            let tempBalance = parseFloat(c.balance) || 0;
+            const movs = rawMovs.map(m => {
+                const amount = Math.abs(parseFloat(m.amount) || 0);
+                const saldoForThisRow = tempBalance;
+                
+                if (m.type === 'DEUDA' || m.type === 'RECARGO') {
+                    tempBalance -= amount;
+                } else if (m.type === 'PAGO' || m.type === 'DESCUENTO') {
+                    tempBalance += amount;
+                }
+                return { ...m, computedSaldo: saldoForThisRow };
+            });
+
             document.querySelector('#clientHistoryTable tbody').innerHTML = movs.map(m => { 
                 let note = m.note; 
                 let vendedor = '-'; 
@@ -2689,7 +2698,25 @@
                         } 
                     } 
                 } 
-                return `<tr><td style="vertical-align:top; border-bottom:1px solid var(--border-color); padding:10px;">${m.date}</td><td style="vertical-align:top; border-bottom:1px solid var(--border-color); padding:10px;">${m.type}</td><td style="vertical-align:top; border-bottom:1px solid var(--border-color); padding:10px;">${note}</td><td style="vertical-align:top; border-bottom:1px solid var(--border-color); padding:10px;">${vendedor}</td><td style="vertical-align:top; border-bottom:1px solid var(--border-color); padding:10px; color:${m.type === 'DEUDA' || m.type === 'RECARGO' ? 'var(--danger)' : (m.type === 'DESCUENTO' ? 'var(--warning)' : 'var(--accent)')}">$${Math.abs(m.amount).toFixed(2)}</td></tr>`; 
+                const isDebe = (m.type === 'DEUDA' || m.type === 'RECARGO');
+                const isHaber = (m.type === 'PAGO' || m.type === 'DESCUENTO');
+                const amt = Math.abs(parseFloat(m.amount) || 0).toFixed(2);
+                
+                const debeStr = isDebe ? `<strong style="color:var(--danger)">$${amt}</strong>` : '-';
+                const haberColor = m.type === 'DESCUENTO' ? 'var(--warning)' : 'var(--accent)';
+                const haberStr = isHaber ? `<strong style="color:${haberColor}">$${amt}</strong>` : '-';
+                const saldoColor = m.computedSaldo < 0 ? 'var(--accent)' : (m.computedSaldo > 0 ? 'var(--danger)' : 'var(--text-main)');
+                const saldoStr = `<strong style="color:${saldoColor}">$${Math.abs(m.computedSaldo).toFixed(2)}</strong>`;
+
+                return `<tr>
+                    <td style="vertical-align:top; border-bottom:1px solid var(--border-color); padding:10px;">${m.date}</td>
+                    <td style="vertical-align:top; border-bottom:1px solid var(--border-color); padding:10px;">${m.type}</td>
+                    <td style="vertical-align:top; border-bottom:1px solid var(--border-color); padding:10px;">${note}</td>
+                    <td style="vertical-align:top; border-bottom:1px solid var(--border-color); padding:10px;">${vendedor}</td>
+                    <td style="vertical-align:top; border-bottom:1px solid var(--border-color); padding:10px;">${debeStr}</td>
+                    <td style="vertical-align:top; border-bottom:1px solid var(--border-color); padding:10px;">${haberStr}</td>
+                    <td style="vertical-align:top; border-bottom:1px solid var(--border-color); padding:10px;">${saldoStr}</td>
+                </tr>`; 
             }).join(''); 
         }
 
