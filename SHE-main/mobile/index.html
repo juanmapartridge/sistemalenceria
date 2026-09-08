@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Scanner Móvil</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- HTML5 QRCode -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        :root {
+            /* Colores basados en la referencia (Dark & Yellow) */
+            --bg-base: #000000;
+            --bg-surface: #1c1c1e;
+            --text-primary: #ffffff;
+            --text-secondary: #8e8e93;
+            --accent: #ffd60a; /* Amarillo vibrante */
+            --danger: #ff453a;
+            --success: #32d74b;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- VISTA DEL ESCÁNER --- */
+        #view-scanner {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+
+        .header-scanner {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            padding: max(20px, env(safe-area-inset-top)) 24px 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 20;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 60%, transparent 100%);
+        }
+
+        .header-scanner h1 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        /* Eliminar la definicin duplicada de icon-btn que estaba arriba */
+
+        .scanner-instruction {
+            position: absolute;
+            top: 80px;
+            width: 100%;
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-secondary);
+            z-index: 20;
+        }
+
+        #reader-container {
+            flex: 1;
+            position: relative;
+            background: #000;
+        }
+
+        #reader {
+            width: 100%;
+            height: 100vh !important;
+        }
+
+        #reader video {
+            object-fit: cover !important;
+            width: 100% !important;
+            height: 100vh !important;
+        }
+
+        /* Ocultar UI nativa de html5-qrcode */
+        #reader__dashboard_section_csr span,
+        #reader__dashboard_section_swaplink,
+        #reader__header_message {
+            display: none !important;
+        }
+
+        /* Marco de escaneo basado en referencia */
+        .scanner-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 75%;
+            height: 200px;
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.65);
+            pointer-events: none;
+            z-index: 15;
+            overflow: hidden;
+        }
+
+        #scan-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: var(--accent);
+            top: 50%;
+            box-shadow: 0 0 8px var(--accent);
+            animation: scanAnim 2s linear infinite alternate;
+        }
+
+        @keyframes scanAnim {
+            0% { top: 10%; }
+            100% { top: 90%; }
+        }
+
+        .bottom-nav {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            z-index: 20;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-secondary);
+            font-size: 11px;
+            gap: 8px;
+        }
+
+        .nav-item i {
+            font-size: 22px;
+        }
+
+        .nav-item.active {
+            color: var(--accent);
+        }
+
+        .main-scan-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--accent);
+            font-size: 24px;
+        }
+
+        /* --- VISTA DE PRODUCTO (RESULTADO) --- */
+        #view-product {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: var(--bg-base);
+            z-index: 30;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        #view-product.show {
+            transform: translateX(0);
+        }
+
+        .header-product {
+            padding: max(20px, env(safe-area-inset-top)) 24px 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-base);
+        }
+
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .icon-btn:active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .placeholder-image {
+            width: 100%;
+            height: 200px;
+            background: var(--bg-surface);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 60px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .product-info-card {
+            background: var(--bg-surface);
+            border-radius: 16px;
+            margin: 0 16px 20px 16px;
+            padding: 24px;
+        }
+
+        .product-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin: 0 0 5px 0;
+        }
+
+        .product-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 0 0 20px 0;
+        }
+
+        .info-row {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 12px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid #333;
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 10px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-surface);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 100;
+            border: 1px solid var(--danger);
+        }
+
+        /* --- MODAL MANUAL --- */
+        #manual-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            z-index: 50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        #manual-modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .manual-box {
+            background: var(--bg-surface);
+            width: 85%;
+            padding: 24px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .manual-box h3 { margin: 0 0 15px 0; }
+        .manual-input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-base);
+            border: 1px solid #333;
+            color: white;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+            outline: none;
+        }
+        .manual-input:focus { border-color: var(--accent); }
+    </style>
+</head>
+<body>
+
+    <!-- VISTA 1: ESCÁNER -->
+    <div id="view-scanner">
+        <div class="header-scanner">
+            <button class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+            <h1>Escanear producto</h1>
+            <button class="icon-btn" id="torch-btn"><i class="fa-solid fa-bolt"></i></button>
+        </div>
+        
+        <div class="scanner-instruction">
+            Colocá el código de barras<br>dentro del recuadro
+        </div>
+
+        <div id="reader-container">
+            <div id="reader"></div>
+            <div class="scanner-frame">
+                <div id="scan-line"></div>
+            </div>
+        </div>
+
+        <div class="bottom-nav">
+            <div class="nav-item">
+                <i class="fa-regular fa-clock"></i>
+                <span>Historial</span>
+            </div>
+            <div class="nav-item active">
+                <div class="main-scan-btn">
+                    <i class="fa-solid fa-barcode"></i>
+                </div>
+            </div>
+            <div class="nav-item" onclick="openManualModal()">
+                <i class="fa-regular fa-keyboard"></i>
+                <span>Teclado</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA 2: DETALLE DEL PRODUCTO -->
+    <div id="view-product">
+        <div class="header-product">
+            <button class="icon-btn" onclick="backToScanner()"><i class="fa-solid fa-chevron-left"></i></button>
+            <div style="display:flex; gap:15px">
+                <button class="icon-btn"><i class="fa-regular fa-heart"></i></button>
+                <button class="icon-btn"><i class="fa-solid fa-ellipsis"></i></button>
+            </div>
+        </div>
+
+        <div class="placeholder-image">
+            <i class="fa-solid fa-box-open"></i>
+        </div>
+
+        <div class="product-info-card">
+            <h2 class="product-title" id="res-name">Cargando...</h2>
+            <p class="product-subtitle" id="res-category">Categoría</p>
+
+            <div class="info-row">
+                <span class="info-label">Marca</span>
+                <span class="info-value" id="res-brand">-</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Talle / Color</span>
+                <span class="info-value" id="res-size">-</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Stock en sistema</span>
+                <span class="info-value" id="res-stock" style="color: var(--success);">-</span>
+            </div>
+
+            <div class="info-row" style="margin-top: 15px;">
+                <span class="info-label">Código de barras</span>
+                <span class="info-value" id="res-code">-</span>
+            </div>
+
+            <button class="btn-primary" id="btn-price">Precio: $0.00</button>
+            <button class="btn-secondary"><i class="fa-solid fa-check"></i> En Stock Local</button>
+        </div>
+    </div>
+
+    <div id="toast">Producto no encontrado</div>
+
+    <!-- MODAL MANUAL -->
+    <div id="manual-modal">
+        <div class="manual-box">
+            <h3>Ingresar Código</h3>
+            <input type="number" id="manual-code" class="manual-input" placeholder="Ej: 779123456789" inputmode="numeric">
+            <button class="btn-primary" onclick="searchManual()" style="margin-top:0">Buscar Producto</button>
+            <button class="btn-secondary" onclick="closeManualModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        let html5QrCode;
+        let isProcessing = false;
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.opacity = '1';
+            setTimeout(() => { t.style.opacity = '0'; }, 2500);
+        }
+
+        function openManualModal() {
+            document.getElementById('manual-modal').classList.add('show');
+            document.getElementById('manual-code').focus();
+        }
+
+        function closeManualModal() {
+            document.getElementById('manual-modal').classList.remove('show');
+            document.getElementById('manual-code').value = '';
+        }
+
+        function searchManual() {
+            const code = document.getElementById('manual-code').value.trim();
+            if(!code) return;
+            closeManualModal();
+            onScanSuccess(code);
+        }
+
+        function backToScanner() {
+            document.getElementById('view-product').classList.remove('show');
+            setTimeout(() => { isProcessing = false; }, 500);
+        }
+
+        async function onScanSuccess(decodedText) {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            if (navigator.vibrate) navigator.vibrate(50);
+
+            try {
+                const res = await fetch(`/api/product/${encodeURIComponent(decodedText)}`);
+                if (!res.ok) {
+                    showToast("Producto no encontrado");
+                    setTimeout(() => { isProcessing = false; }, 2000);
+                    return;
+                }
+                
+                const p = await res.json();
+                
+                document.getElementById('res-name').innerText = p.name;
+                document.getElementById('res-category').innerText = p.category || 'General';
+                document.getElementById('res-brand').innerText = p.brand || 'SHE Lencería';
+                document.getElementById('res-code').innerText = p.code;
+                
+                const sizeColor = [p.size, p.color].filter(Boolean).join(" / ");
+                document.getElementById('res-size').innerText = sizeColor || 'Única';
+
+                const stockEl = document.getElementById('res-stock');
+                stockEl.innerText = p.qty + ' unidades disponibles';
+                stockEl.style.color = p.qty > 0 ? 'var(--success)' : 'var(--danger)';
+
+                document.getElementById('btn-price').innerText = `Precio Final: $${Number(p.price).toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+
+                document.getElementById('view-product').classList.add('show');
+
+            } catch (err) {
+                console.error(err);
+                showToast("Error de conexión");
+                setTimeout(() => { isProcessing = false; }, 2000);
+            }
+        }
+
+        function startScanner() {
+            try {
+                // Limpiar siempre antes de iniciar por si qued algo colgado
+                document.getElementById('reader').innerHTML = '';
+                html5QrCode = new Html5Qrcode("reader");
+            } catch(e) {}
+            
+            const config = { 
+                fps: 15, 
+                qrbox: { width: window.innerWidth * 0.9, height: 150 }
+            };
+            
+            // Usamos ideal para pedir buena resolucin pero SIN obligar al iPhone
+            // Si obligamos con 'min', Safari explota y apaga la cmara.
+            const videoConstraints = { 
+                facingMode: "environment",
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            };
+            
+            html5QrCode.start(videoConstraints, config, onScanSuccess)
+            .catch(err => {
+                console.error("Error iniciando cmara HD:", err);
+                
+                // Reiniciar instancia si fall WebRTC
+                document.getElementById('reader').innerHTML = '';
+                html5QrCode = new Html5Qrcode("reader");
+                
+                html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+                .catch(err2 => {
+                    console.error("Fallo total de cmara:", err2);
+                    // Fallback nativo 100% seguro:
+                    document.getElementById('reader').innerHTML = `
+                        <div style="padding: 40px 20px; text-align: center; color: white;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 40px; color: var(--warning); margin-bottom: 15px;"></i>
+                            <p style="margin-bottom: 20px; font-size: 16px;">La cámara en vivo está bloqueada. Por favor, usa la cámara normal para escanear:</p>
+                            <label class="btn" style="background: var(--primary); padding: 15px 30px; border-radius: 30px; font-weight: bold; cursor: pointer; display: inline-block; font-size: 18px;">
+                                <i class="fas fa-camera"></i> Tomar Foto al Código
+                                <input type="file" accept="image/*" capture="environment" style="display: none;" id="native-cam" onchange="scanImage(event)">
+                            </label>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function scanImage(event) {
+            if (event.target.files.length === 0) return;
+            const file = event.target.files[0];
+            
+            // Mostrar estado de carga
+            document.getElementById('reader').innerHTML = '<div style="padding:50px; color:white; text-align:center;"><i class="fas fa-spinner fa-spin" style="font-size:40px;"></i><p>Leyendo código...</p></div>';
+            
+            const tempReader = new Html5Qrcode("reader");
+            tempReader.scanFile(file, true)
+            .then(decodedText => {
+                onScanSuccess(decodedText);
+            })
+            .catch(err => {
+                console.error("No se encontr cdigo en la foto", err);
+                showToast("No se detectó el código en la foto. Intenta que se vea más nítido.");
+                startScanner(); // Reiniciar vista
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Iniciar directamente
+            startScanner();
+        });
+
+        // Evento para el botón principal (por si la cámara falla y necesitan reintentar)
+        document.querySelector('.main-scan-btn').addEventListener('click', () => {
+            if (!html5QrCode || !html5QrCode.isScanning) {
+                startScanner();
+            }
+        });
+    </script>
+</body>
+</html>
